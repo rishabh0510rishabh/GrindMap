@@ -6,13 +6,22 @@
 
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #f0f2f5;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #1e293b;
+  min-height: 100vh;
 }
 
 .app {
   min-height: 100vh;
   padding: 20px;
+}
+
+.app h1 {
+  text-align: center;
+  font-size: 3.5em;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  margin-bottom: 30px;
 }
 
 /* Back Button (used on all screens except home) */
@@ -433,11 +442,18 @@ body {
 
 .username-inputs {
   background: white;
-  padding: 30px;
-  border-radius: 16px;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 15px 50px rgba(0,0,0,0.2);
   max-width: 600px;
   margin: 30px auto;
+}
+
+.username-inputs h2 {
+  text-align: center;
+  color: #667eea;
+  margin-bottom: 30px;
+  font-size: 2em;
 }
 
 .input-group {
@@ -461,18 +477,44 @@ body {
 .refresh-btn {
   display: block;
   margin: 30px auto 0;
-  padding: 15px 40px;
+  padding: 15px 50px;
   font-size: 1.4em;
-  background: #4caf50;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 12px;
+  border-radius: 50px;
   cursor: pointer;
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.refresh-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.6);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .overall {
   text-align: center;
   margin: 50px 0;
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 15px 50px rgba(0,0,0,0.2);
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.overall h2 {
+  color: #667eea;
+  font-size: 2.2em;
+  margin-bottom: 20px;
 }
 
 .platforms-grid {
@@ -484,15 +526,18 @@ body {
 
 .platform-card {
   background: white;
-  padding: 25px;
-  border-radius: 16px;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15);
   cursor: pointer;
   transition: all 0.3s;
+  border: 2px solid transparent;
 }
 
 .platform-card:hover {
   transform: translateY(-10px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  border-color: #667eea;
 }
 
 .platform-card.expanded {
@@ -702,9 +747,9 @@ body {
 
 .today-activity {
   background: white;
-  padding: 30px;
-  border-radius: 16px;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 15px 50px rgba(0,0,0,0.2);
   max-width: 900px;
   margin: 50px auto;
 }
@@ -713,7 +758,7 @@ body {
   text-align: center;
   margin-bottom: 30px;
   font-size: 2em;
-  color: #333;
+  color: #667eea;
 }
 
 .activity-list {

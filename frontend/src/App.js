@@ -44,10 +44,10 @@ function App() {
 
       try {
         if (plat.key === 'leetcode') {
-          const res = await fetch(`https://leetcode-stats-api.herokuapp.com/${username}`);
+          const res = await fetch(`http://localhost:5000/api/leetcode/${username}`);
           const result = await res.json();
-          if (result.status === "success") {
-            newData.leetcode = result;
+          if (result.data) {
+            newData.leetcode = result.data;
           } else {
             newData.leetcode = { error: 'User not found' };
           }
