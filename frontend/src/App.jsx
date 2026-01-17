@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import "./App.css";
 import CircularProgress from "./components/CircularProgress";
-import ActivityHeatmap from "./components/ActivityHeatmap";
+
 import DemoPage from "./components/DemoPage";
 import AnalyticsDashboard from "./components/AnalyticsDashboard";
 import UsernameInputs from "./components/UsernameInputs";
+import PlatformCard from "./components/PlatformCard";
 import { useGrindMapData } from "./hooks/useGrindMapData";
 import { PLATFORMS, OVERALL_GOAL } from "./utils/platforms";
 
@@ -21,7 +22,6 @@ function App() {
     handleChange,
     fetchAll,
     getPlatformPercentage,
-    getHeatmapData,
     hasSubmittedToday,
   } = useGrindMapData();
 
@@ -100,107 +100,16 @@ function App() {
           </div>
 
           <div className="platforms-grid">
-            {PLATFORMS.map((plat) => {
-              const data = platformData[plat.key];
-              const isExpanded = expanded === plat.key;
-              const percentage = getPlatformPercentage(plat.key);
-
-              return (
-                <div
-                  key={plat.key}
-                  className={`platform-card ${isExpanded ? "expanded" : ""}`}
-                  onClick={() => toggleExpand(plat.key)}
-                >
-                  <div className="card-header">
-                    <h3 style={{ color: plat.color }}>{plat.name}</h3>
-                    <div className="platform-progress">
-                      <CircularProgress
-                        percentage={percentage}
-                        color={plat.color}
-                        size={isExpanded ? "large" : "medium"}
-                      />
-                    </div>
-                  </div>
-
-                  {data ? (
-                    data.error ? (
-                      <p className="error">{data.error}</p>
-                    ) : (
-                      <>
-                        <div className="summary">
-                          {data.totalSolved && (
-                            <p>
-                              <strong>{data.totalSolved}</strong> solved (
-                              {percentage}%)
-                            </p>
-                          )}
-                          {data.solved && (
-                            <p>
-                              <strong>{data.solved}</strong> solved
-                            </p>
-                          )}
-                          {data.rating && (
-                            <p>
-                              Rating: <strong>{data.rating}</strong>
-                            </p>
-                          )}
-                          {data.rank && (
-                            <p>
-                              Rank: <strong>{data.rank}</strong>
-                            </p>
-                          )}
-                          {data.problem_fully_solved && (
-                            <p>
-                              Fully Solved:{" "}
-                              <strong>{data.problem_fully_solved}</strong>
-                            </p>
-                          )}
-                        </div>
-
-                        {isExpanded && (
-                          <div className="details">
-                            {plat.key === "leetcode" && (
-                              <>
-                                <p>
-                                  Easy: {data.easySolved} | Medium:{" "}
-                                  {data.mediumSolved} | Hard: {data.hardSolved}
-                                </p>
-                                <p>Global Ranking: #{data.ranking || "N/A"}</p>
-                                <div className="heatmap-section">
-                                  <h4>Submission Heatmap</h4>
-                                  <ActivityHeatmap
-                                    data={getHeatmapData(
-                                      data.submissionCalendar,
-                                    )}
-                                  />
-                                </div>
-                              </>
-                            )}
-                            {plat.key === "codeforces" && (
-                              <>
-                                <p>Current Rating: {data.rating}</p>
-                                <p>Current Rank: {data.rank}</p>
-                              </>
-                            )}
-                            {plat.key === "codechef" && (
-                              <>
-                                <p>Stars: {data.total_stars || 0} ⭐</p>
-                                <p>Global Rank: #{data.global_rank || "N/A"}</p>
-                                <p>
-                                  Country Rank: #{data.country_rank || "N/A"}
-                                </p>
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </>
-                    )
-                  ) : (
-                    <p>Enter username and refresh</p>
-                  )}
-                </div>
-              );
-            })}
+            {PLATFORMS.map((plat) => (
+              <PlatformCard
+                key={plat.key}
+                platform={plat}
+                data={platformData[plat.key]}
+                expanded={expanded}
+                onToggle={toggleExpand}
+                percentage={getPlatformPercentage(plat.key)}
+              />
+            ))}
           </div>
 
           {/* Today's Activity */}
