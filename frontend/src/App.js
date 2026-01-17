@@ -3,9 +3,12 @@ import './App.css';
 import CircularProgress from './components/CircularProgress';
 import ActivityHeatmap from './components/ActivityHeatmap';
 import DemoPage from './components/DemoPage';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
+import UsernameInputs from './components/UsernameInputs';
 
 function App() {
   const [showDemo, setShowDemo] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const [usernames, setUsernames] = useState({
     leetcode: '',
     codeforces: '',
@@ -27,9 +30,7 @@ function App() {
     { key: 'codechef', name: 'CodeChef', color: '#5d4037' },
   ];
 
-  const handleChange = (key, value) => {
-    setUsernames(prev => ({ ...prev, [key]: value }));
-  };
+
 
   const fetchAll = async () => {
     setLoading(true);
@@ -44,7 +45,7 @@ function App() {
 
       try {
         if (plat.key === 'leetcode') {
-          const res = await fetch(`http://localhost:5000/api/leetcode/${username}`);
+          const res = await fetch(`http://localhost:5001/api/leetcode/${username}`);
           const result = await res.json();
           if (result.data) {
             newData.leetcode = result.data;
@@ -52,30 +53,32 @@ function App() {
             newData.leetcode = { error: 'User not found' };
           }
         } else if (plat.key === 'codeforces') {
-          const infoRes = await fetch(`https://codeforces.com/api/user.info?handles=${username}`);
-          const info = await infoRes.json();
-          if (info.status === "OK") {
-            const rating = info.result[0].rating || 0;
-            const rank = info.result[0].rank || 'unrated';
-
-            const statusRes = await fetch(`https://codeforces.com/api/user.status?handle=${username}`);
-            const status = await statusRes.json();
-            const solved = new Set(
-              status.result?.filter(s => s.verdict === "OK")
-                .map(s => `${s.problem.contestId}-${s.problem.index}`) || []
-            ).size;
-
-            newData.codeforces = { rating, rank, solved };
+          const res = await fetch(`http://localhost:5001/api/codeforces/${username}`);
+          const result = await res.json();
+          if (result.success && result.data) {
+            const stats = result.data.stats;
+            newData.codeforces = {
+              rating: stats.rating,
+              rank: stats.rank,
+              solved: stats.totalSolved
+            };
           } else {
-            newData.codeforces = { error: 'User not found' };
+            newData.codeforces = { error: result.error || 'Failed to fetch' };
           }
         } else if (plat.key === 'codechef') {
-          const res = await fetch(`https://codechef-api.vercel.app/handle/${username}`);
+          const res = await fetch(`http://localhost:5001/api/codechef/${username}`);
           const result = await res.json();
-          if (result.rating) {
-            newData.codechef = result;
+          if (result.success && result.data) {
+            const stats = result.data.stats;
+            newData.codechef = {
+              rating: stats.rating,
+              problem_fully_solved: stats.totalSolved,
+              total_stars: 0,
+              global_rank: stats.rank,
+              country_rank: ''
+            };
           } else {
-            newData.codechef = { error: 'User not found' };
+            newData.codechef = { error: result.error || 'Failed to fetch' };
           }
         }
       } catch (err) {
@@ -87,7 +90,7 @@ function App() {
     setLoading(false);
   };
 
-  const totalSolved = 
+  const totalSolved =
     (platformData.leetcode?.totalSolved || 0) +
     (platformData.codeforces?.solved || 0) +
     (platformData.codechef?.problem_fully_solved || 0);
@@ -140,124 +143,119 @@ function App() {
         <>
           <DemoPage onBack={() => setShowDemo(false)} />
         </>
+      ) : showAnalytics ? (
+        <>
+          <button onClick={() => setShowAnalytics(false)} className="back-btn">← Back to Main</button>
+          <AnalyticsDashboard platformData={platformData} />
+        </>
       ) : (
         <>
           <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-            <button onClick={() => setShowDemo(true)} style={{ padding: '10px 20px', fontSize: '1em', background: '#667eea', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>View Demo</button>
+            <button onClick={() => setShowDemo(true)} style={{ padding: '10px 20px', fontSize: '1em', background: '#667eea', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', marginRight: '10px' }}>View Demo</button>
+            <button onClick={() => setShowAnalytics(true)} style={{ padding: '10px 20px', fontSize: '1em', background: '#4caf50', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>View Analytics</button>
           </div>
           <h1>GrindMap</h1>
 
-      <div className="username-inputs">
-        <h2>Enter Your Usernames</h2>
-        {platforms.map(plat => (
-          <div key={plat.key} className="input-group">
-            <label>{plat.name}</label>
-            <input
-              type="text"
-              value={usernames[plat.key]}
-              onChange={(e) => handleChange(plat.key, e.target.value)}
-              placeholder={`Your ${plat.name} username`}
-            />
+          <UsernameInputs
+            usernames={usernames}
+            setUsernames={setUsernames}
+            onFetch={fetchAll}
+            loading={loading}
+          />
+
+          <div className="overall">
+            <h2>Overall Progress</h2>
+            <CircularProgress solved={totalSolved} goal={overallGoal} color="#4caf50" />
+            <p>{totalSolved} / {overallGoal} problems solved</p>
           </div>
-        ))}
-        <button onClick={fetchAll} disabled={loading} className="refresh-btn">
-          {loading ? 'Loading...' : 'Refresh All'}
-        </button>
-      </div>
 
-      <div className="overall">
-        <h2>Overall Progress</h2>
-        <CircularProgress solved={totalSolved} goal={overallGoal} color="#4caf50" />
-        <p>{totalSolved} / {overallGoal} problems solved</p>
-      </div>
+          <div className="platforms-grid">
+            {platforms.map(plat => {
+              const data = platformData[plat.key];
+              const isExpanded = expanded === plat.key;
+              const percentage = getPlatformPercentage(plat.key);
 
-      <div className="platforms-grid">
-        {platforms.map(plat => {
-          const data = platformData[plat.key];
-          const isExpanded = expanded === plat.key;
-          const percentage = getPlatformPercentage(plat.key);
-
-          return (
-            <div
-              key={plat.key}
-              className={`platform-card ${isExpanded ? 'expanded' : ''}`}
-              onClick={() => toggleExpand(plat.key)}
-            >
-              <div className="card-header">
-                <h3 style={{ color: plat.color }}>{plat.name}</h3>
-                <div className="platform-progress">
-                  <CircularProgress percentage={percentage} color={plat.color} size={isExpanded ? 'large' : 'medium'} />
-                </div>
-              </div>
-
-              {data ? (
-                data.error ? (
-                  <p className="error">{data.error}</p>
-                ) : (
-                  <>
-                    <div className="summary">
-                      {data.totalSolved && <p><strong>{data.totalSolved}</strong> solved ({percentage}%)</p>}
-                      {data.solved && <p><strong>{data.solved}</strong> solved</p>}
-                      {data.rating && <p>Rating: <strong>{data.rating}</strong></p>}
-                      {data.rank && <p>Rank: <strong>{data.rank}</strong></p>}
-                      {data.problem_fully_solved && <p>Fully Solved: <strong>{data.problem_fully_solved}</strong></p>}
+              return (
+                <div
+                  key={plat.key}
+                  className={`platform-card ${isExpanded ? 'expanded' : ''}`}
+                  onClick={() => toggleExpand(plat.key)}
+                >
+                  <div className="card-header">
+                    <h3 style={{ color: plat.color }}>{plat.name}</h3>
+                    <div className="platform-progress">
+                      <CircularProgress percentage={percentage} color={plat.color} size={isExpanded ? 'large' : 'medium'} />
                     </div>
+                  </div>
 
-                    {isExpanded && (
-                      <div className="details">
-                        {plat.key === 'leetcode' && (
-                          <>
-                            <p>Easy: {data.easySolved} | Medium: {data.mediumSolved} | Hard: {data.hardSolved}</p>
-                            <p>Global Ranking: #{data.ranking || 'N/A'}</p>
-                            <div className="heatmap-section">
-                              <h4>Submission Heatmap</h4>
-                              <ActivityHeatmap data={getHeatmapData(data.submissionCalendar)} />
-                            </div>
-                          </>
+                  {data ? (
+                    data.error ? (
+                      <p className="error">{data.error}</p>
+                    ) : (
+                      <>
+                        <div className="summary">
+                          {data.totalSolved && <p><strong>{data.totalSolved}</strong> solved ({percentage}%)</p>}
+                          {data.solved && <p><strong>{data.solved}</strong> solved</p>}
+                          {data.rating && <p>Rating: <strong>{data.rating}</strong></p>}
+                          {data.rank && <p>Rank: <strong>{data.rank}</strong></p>}
+                          {data.problem_fully_solved && <p>Fully Solved: <strong>{data.problem_fully_solved}</strong></p>}
+                        </div>
+
+                        {isExpanded && (
+                          <div className="details">
+                            {plat.key === 'leetcode' && (
+                              <>
+                                <p>Easy: {data.easySolved} | Medium: {data.mediumSolved} | Hard: {data.hardSolved}</p>
+                                <p>Global Ranking: #{data.ranking || 'N/A'}</p>
+                                <div className="heatmap-section">
+                                  <h4>Submission Heatmap</h4>
+                                  <ActivityHeatmap data={getHeatmapData(data.submissionCalendar)} />
+                                </div>
+                              </>
+                            )}
+                            {plat.key === 'codeforces' && (
+                              <>
+                                <p>Current Rating: {data.rating}</p>
+                                <p>Current Rank: {data.rank}</p>
+                              </>
+                            )}
+                            {plat.key === 'codechef' && (
+                              <>
+                                <p>Stars: {data.total_stars || 0} ⭐</p>
+                                <p>Global Rank: #{data.global_rank || 'N/A'}</p>
+                                <p>Country Rank: #{data.country_rank || 'N/A'}</p>
+                              </>
+                            )}
+                          </div>
                         )}
-                        {plat.key === 'codeforces' && (
-                          <>
-                            <p>Current Rating: {data.rating}</p>
-                            <p>Current Rank: {data.rank}</p>
-                          </>
-                        )}
-                        {plat.key === 'codechef' && (
-                          <>
-                            <p>Stars: {data.total_stars || 0} ⭐</p>
-                            <p>Global Rank: #{data.global_rank || 'N/A'}</p>
-                            <p>Country Rank: #{data.country_rank || 'N/A'}</p>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </>
-                )
-              ) : (
-                <p>Enter username and refresh</p>
-              )}
+                      </>
+                    )
+                  ) : (
+                    <p>Enter username and refresh</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Today's Activity - NOW WORKING */}
+          <div className="today-activity">
+            <h2>Today's Activity ({today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })})</h2>
+            <div className="activity-list">
+              {platforms.map(plat => {
+                const submittedToday = hasSubmittedToday(plat.key);
+                const hasData = platformData[plat.key] && !platformData[plat.key].error;
+
+                return (
+                  <div key={plat.key} className={`activity-item ${submittedToday ? 'done' : hasData ? 'active-no-sub' : 'missed'}`}>
+                    <span>{plat.name}</span>
+                    <span>
+                      {submittedToday ? '✅ Coded Today' : hasData ? '✅ Active (No submission today)' : '❌ No Data'}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
-
-      {/* Today's Activity - NOW WORKING */}
-      <div className="today-activity">
-        <h2>Today's Activity ({today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })})</h2>
-        <div className="activity-list">
-          {platforms.map(plat => {
-            const submittedToday = hasSubmittedToday(plat.key);
-            const hasData = platformData[plat.key] && !platformData[plat.key].error;
-
-            return (
-              <div key={plat.key} className={`activity-item ${submittedToday ? 'done' : hasData ? 'active-no-sub' : 'missed'}`}>
-                <span>{plat.name}</span>
-                <span>
-                  {submittedToday ? '✅ Coded Today' : hasData ? '✅ Active (No submission today)' : '❌ No Data'}
-                </span>
-              </div>
-            );
-          })}
-        </div>
           </div>
         </>
       )}
