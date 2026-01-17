@@ -104,11 +104,23 @@ Please use clear and descriptive commit messages:
 - 🧪 **Testing**: Write unit and integration tests
 - 🌐 **Localization**: Translate to other languages
 
+
+## Debugging Guide
+
+For help with common debugging issues, setup problems, and troubleshooting tips, please refer to our [**Contributor Debugging Playground**](./CONTRIBUTOR_DEBUGGING.md). This guide covers:
+
+- Environment setup troubleshooting
+- Frontend and backend debugging techniques
+- Scraper debugging tips
+- Database issue resolution
+- Development tools and best practices
+
 ## Getting Help
 
 - Check [Discussions](../../discussions) for common questions
 - Open an [Issue](../../issues) if you're stuck
 - Reach out to the maintainers
+- Refer to [Contributor Debugging Playground](./CONTRIBUTOR_DEBUGGING.md) for debugging help
 
 ## Recognition
 

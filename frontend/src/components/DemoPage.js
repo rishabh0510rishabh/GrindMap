@@ -1,12 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import CircularProgress from './CircularProgress';
 import ActivityHeatmap from './ActivityHeatmap';
 import '../App.css';
 
-const DemoPage = () => {
+/**
+ * DemoPage – Interactive Demo Mode
+ * Shows sample data for GrindMap
+ */
+
+const PLATFORM_GOALS = {
+  leetcode: 3000,
+  codeforces: 500,
+  codechef: 300
+};
+
+const DemoPage = ({ onBack }) => {
   const [expanded, setExpanded] = useState(null);
 
-  const demoData = {
+  /**
+   * Memoized demo data (prevents random regeneration on re-render)
+   */
+  const demoData = useMemo(() => ({
     leetcode: {
       totalSolved: 487,
       totalQuestions: 3000,
@@ -28,7 +42,7 @@ const DemoPage = () => {
       global_rank: 8234,
       country_rank: 1523
     }
-  };
+  }), []);
 
   const platforms = [
     { key: 'leetcode', name: 'LeetCode', color: '#ffa116' },
@@ -36,41 +50,95 @@ const DemoPage = () => {
     { key: 'codechef', name: 'CodeChef', color: '#5d4037' }
   ];
 
-  const totalSolved = demoData.leetcode.totalSolved + demoData.codeforces.solved + demoData.codechef.problem_fully_solved;
-  const overallGoal = 10000;
+  /**
+   * Overall progress calculation
+   */
+  const totalSolved =
+    demoData.leetcode.totalSolved +
+    demoData.codeforces.solved +
+    demoData.codechef.problem_fully_solved;
 
-  const getPlatformPercentage = (platKey) => {
-    const data = demoData[platKey];
-    if (platKey === 'leetcode') return Math.round((data.totalSolved / data.totalQuestions) * 100);
-    if (platKey === 'codeforces') return Math.round((data.rating / 3500) * 100);
-    if (platKey === 'codechef') return Math.round((data.rating / 3000) * 100);
+  const overallGoal =
+    PLATFORM_GOALS.leetcode +
+    PLATFORM_GOALS.codeforces +
+    PLATFORM_GOALS.codechef;
+
+  const overallPercentage = Math.round((totalSolved / overallGoal) * 100);
+
+  /**
+   * Platform progress (normalized by problems solved)
+   */
+  const getPlatformPercentage = (key) => {
+    if (key === 'leetcode') {
+      return Math.round(
+        (demoData.leetcode.totalSolved / PLATFORM_GOALS.leetcode) * 100
+      );
+    }
+
+    if (key === 'codeforces') {
+      return Math.round(
+        (demoData.codeforces.solved / PLATFORM_GOALS.codeforces) * 100
+      );
+    }
+
+    if (key === 'codechef') {
+      return Math.round(
+        (demoData.codechef.problem_fully_solved / PLATFORM_GOALS.codechef) * 100
+      );
+    }
+
     return 0;
   };
 
-  const getHeatmapData = (calendar) => {
-    return Object.entries(calendar).map(([ts, count]) => ({
+  /**
+   * Heatmap transformer
+   */
+  const getHeatmapData = (calendar) =>
+    Object.entries(calendar).map(([ts, count]) => ({
       date: new Date(parseInt(ts) * 1000).toISOString().split('T')[0],
       count
     }));
+
+  /**
+   * Demo activity (not all perfect on purpose)
+   */
+  const todayActivity = {
+    leetcode: true,
+    codeforces: true,
+    codechef: false
   };
 
   return (
     <div className="app demo-mode">
+      {/* Demo Banner */}
       <div className="demo-banner">
+        <button className="back-btn" onClick={onBack}>
+        Back to Main
+      </button>
+      
         <h2>🎯 Interactive Demo</h2>
-        <p>Explore GrindMap with sample data • Click cards to expand details</p>
+        <p>Explore GrindMap with sample data • Click cards to expand</p>
       </div>
 
       <h1>GrindMap</h1>
 
+      {/* Overall Progress */}
       <div className="overall">
         <h2>Overall Progress</h2>
-        <CircularProgress solved={totalSolved} goal={overallGoal} color="#4caf50" />
-        <p>{totalSolved} / {overallGoal} problems solved</p>
+        <CircularProgress
+          percentage={overallPercentage}
+          color="#4caf50"
+          size="large"
+        />
+        <p>
+          <strong>{overallPercentage}%</strong> • {totalSolved} / {overallGoal}{' '}
+          problems solved
+        </p>
       </div>
 
+      {/* Platform Cards */}
       <div className="platforms-grid">
-        {platforms.map(plat => {
+        {platforms.map((plat) => {
           const data = demoData[plat.key];
           const isExpanded = expanded === plat.key;
           const percentage = getPlatformPercentage(plat.key);
@@ -78,42 +146,74 @@ const DemoPage = () => {
           return (
             <div
               key={plat.key}
+              role="button"
+              tabIndex={0}
+              aria-expanded={isExpanded}
               className={`platform-card ${isExpanded ? 'expanded' : ''}`}
-              onClick={() => setExpanded(expanded === plat.key ? null : plat.key)}
+              onClick={() =>
+                setExpanded(isExpanded ? null : plat.key)
+              }
+              onKeyDown={(e) =>
+                e.key === 'Enter' &&
+                setExpanded(isExpanded ? null : plat.key)
+              }
             >
               <div className="card-header">
                 <h3 style={{ color: plat.color }}>{plat.name}</h3>
-                <div className="platform-progress">
-                  <CircularProgress percentage={percentage} color={plat.color} size={isExpanded ? 'large' : 'medium'} />
-                </div>
+                <CircularProgress
+                  percentage={percentage}
+                  color={plat.color}
+                  size={isExpanded ? 'large' : 'medium'}
+                />
               </div>
 
+              {/* Summary */}
               <div className="summary">
-                {data.totalSolved && <p><strong>{data.totalSolved}</strong> solved ({percentage}%)</p>}
+                {data.totalSolved && (
+                  <p>
+                    <strong>{data.totalSolved}</strong> solved ({percentage}%)
+                  </p>
+                )}
                 {data.solved && <p><strong>{data.solved}</strong> solved</p>}
                 {data.rating && <p>Rating: <strong>{data.rating}</strong></p>}
                 {data.rank && <p>Rank: <strong>{data.rank}</strong></p>}
-                {data.problem_fully_solved && <p>Fully Solved: <strong>{data.problem_fully_solved}</strong></p>}
+                {data.problem_fully_solved && (
+                  <p>
+                    Fully Solved:{' '}
+                    <strong>{data.problem_fully_solved}</strong>
+                  </p>
+                )}
               </div>
 
+              {/* Expanded Details */}
               {isExpanded && (
                 <div className="details">
                   {plat.key === 'leetcode' && (
                     <>
-                      <p>Easy: {data.easySolved} | Medium: {data.mediumSolved} | Hard: {data.hardSolved}</p>
+                      <p>
+                        Easy: {data.easySolved} | Medium:{' '}
+                        {data.mediumSolved} | Hard: {data.hardSolved}
+                      </p>
                       <p>Global Ranking: #{data.ranking}</p>
+
                       <div className="heatmap-section">
                         <h4>Submission Heatmap</h4>
-                        <ActivityHeatmap data={getHeatmapData(data.submissionCalendar)} />
+                        <ActivityHeatmap
+                          data={getHeatmapData(
+                            data.submissionCalendar
+                          )}
+                        />
                       </div>
                     </>
                   )}
+
                   {plat.key === 'codeforces' && (
                     <>
                       <p>Current Rating: {data.rating}</p>
-                      <p>Current Rank: {data.rank}</p>
+                      <p>Rank: {data.rank}</p>
                     </>
                   )}
+
                   {plat.key === 'codechef' && (
                     <>
                       <p>Stars: {data.total_stars} ⭐</p>
@@ -123,18 +223,32 @@ const DemoPage = () => {
                   )}
                 </div>
               )}
+
+              <div className="expand-hint">
+                {isExpanded ? 'Click to collapse' : 'Click to expand'}
+              </div>
             </div>
           );
         })}
       </div>
 
+      {/* Today’s Activity */}
       <div className="today-activity">
         <h2>Today's Activity</h2>
         <div className="activity-list">
-          {platforms.map(plat => (
-            <div key={plat.key} className="activity-item done">
+          {platforms.map((plat) => (
+            <div
+              key={plat.key}
+              className={`activity-item ${
+                todayActivity[plat.key] ? 'done' : 'missed'
+              }`}
+            >
               <span>{plat.name}</span>
-              <span>✅ Coded Today</span>
+              <span>
+                {todayActivity[plat.key]
+                  ? '✅ Coded Today'
+                  : '❌ No Activity'}
+              </span>
             </div>
           ))}
         </div>
@@ -143,13 +257,18 @@ const DemoPage = () => {
   );
 };
 
+/**
+ * Generates 1 year of demo submission data
+ */
 function generateDemoCalendar() {
   const calendar = {};
-  const now = Date.now() / 1000;
+  const now = Math.floor(Date.now() / 1000);
+
   for (let i = 0; i < 365; i++) {
-    const timestamp = Math.floor(now - (i * 86400));
-    calendar[timestamp] = Math.floor(Math.random() * 15);
+    const ts = now - i * 86400;
+    calendar[ts] = Math.floor(Math.random() * 12);
   }
+
   return calendar;
 }
 
