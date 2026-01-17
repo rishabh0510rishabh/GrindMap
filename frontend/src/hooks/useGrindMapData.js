@@ -39,37 +39,37 @@ export const useGrindMapData = () => {
           data = { error: "User not found" };
         }
       } else if (plat.key === "codeforces") {
-        const infoRes = await fetch(
-          `https://codeforces.com/api/user.info?handles=${username}`,
+        const res = await fetch(
+          `http://localhost:5000/api/codeforces/${username}`,
         );
-        const info = await infoRes.json();
-        if (info.status === "OK") {
-          const rating = info.result[0].rating || 0;
-          const rank = info.result[0].rank || "unrated";
-
-          const statusRes = await fetch(
-            `https://codeforces.com/api/user.status?handle=${username}`,
-          );
-          const status = await statusRes.json();
-          const solved = new Set(
-            status.result
-              ?.filter((s) => s.verdict === "OK")
-              .map((s) => `${s.problem.contestId}-${s.problem.index}`) || [],
-          ).size;
-
-          data = { rating, rank, solved };
+        const result = await res.json();
+        if (result.success && result.data) {
+          const { stats } = result.data;
+          data = {
+            rating: stats.rating,
+            rank: stats.rank,
+            solved: stats.totalSolved,
+            maxRating: stats.maxRating,
+          };
         } else {
-          data = { error: "User not found" };
+          data = { error: result.error || "User not found" };
         }
       } else if (plat.key === "codechef") {
         const res = await fetch(
-          `https://codechef-api.vercel.app/handle/${username}`,
+          `http://localhost:5000/api/codechef/${username}`,
         );
         const result = await res.json();
-        if (result.rating) {
-          data = result;
+        if (result.success && result.data) {
+          const { stats } = result.data;
+          data = {
+            rating: stats.rating,
+            problem_fully_solved: stats.totalSolved,
+            global_rank: stats.globalRank,
+            country_rank: stats.countryRank,
+            total_stars: stats.stars,
+          };
         } else {
-          data = { error: "User not found" };
+          data = { error: result.error || "User not found" };
         }
       }
       return { key: plat.key, data };
