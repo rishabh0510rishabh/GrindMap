@@ -8,12 +8,15 @@ import { AppError, ERROR_CODES } from '../utils/appError.js';
 
 /**
  * Platform scraping service - handles all platform data fetching
+ * NO DIRECT SERVICE DEPENDENCIES - uses DI container
  */
 class PlatformService {
+  constructor(container = null) {
+    this.container = container;
+  }
+
   /**
    * Fetch user data from LeetCode
-   * @param {string} username - User's LeetCode username
-   * @returns {Promise<Object>} Normalized user data
    */
   async fetchLeetCodeData(username) {
     try {
@@ -34,8 +37,6 @@ class PlatformService {
 
   /**
    * Fetch user data from Codeforces
-   * @param {string} username - User's Codeforces username
-   * @returns {Promise<Object>} Normalized user data
    */
   async fetchCodeforcesData(username) {
     try {
@@ -58,8 +59,6 @@ class PlatformService {
 
   /**
    * Fetch user data from CodeChef
-   * @param {string} username - User's CodeChef username
-   * @returns {Promise<Object>} Normalized user data
    */
   async fetchCodeChefData(username) {
     try {
@@ -82,11 +81,17 @@ class PlatformService {
 
   /**
    * Get supported platforms list
-   * @returns {Array<string>} List of supported platforms
    */
   getSupportedPlatforms() {
     return Object.values(PLATFORMS);
   }
+
+  /**
+   * Get activity service (lazy loaded)
+   */
+  getActivityService() {
+    return this.container?.get('activityService');
+  }
 }
 
-export default new PlatformService();
+export default PlatformService;
