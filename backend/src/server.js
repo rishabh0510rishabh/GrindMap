@@ -65,27 +65,27 @@ process.on('uncaughtException', (err) => {
  * ----------------------------
  */
 app.get(
-  '/api/leetcode/:username',
-  validate({ username: { required: true, type: 'username' } }),
+  "/api/leetcode/:username",
+  validate({ username: { required: true, type: "username" } }),
   async (req, res) => {
     try {
       const data = await backpressureManager.process(() =>
-        withTrace(req.traceId, 'leetcode.scrape', () =>
-          scrapeLeetCode(req.params.username)
-        )
+        withTrace(req.traceId, "leetcode.scrape", () =>
+          scrapeLeetCode(req.params.username),
+        ),
       );
       res.json({ data, traceId: req.traceId });
     } catch (error) {
       if (
-        error.message.includes('Circuit breaker') ||
-        error.message.includes('Queue full')
+        error.message.includes("Circuit breaker") ||
+        error.message.includes("Queue full")
       ) {
         res.status(503).json({ error: error.message, traceId: req.traceId });
       } else {
         res.status(500).json({ error: error.message, traceId: req.traceId });
       }
     }
-  }
+  },
 );
 
 /**
@@ -94,16 +94,16 @@ app.get(
  * ----------------------------
  */
 app.get(
-  '/api/codeforces/:username',
-  validate({ username: { required: true, type: 'username' } }),
+  "/api/codeforces/:username",
+  validate({ username: { required: true, type: "username" } }),
   async (req, res) => {
     try {
       const username = req.params.username;
 
       const raw = await backpressureManager.process(() =>
-        withTrace(req.traceId, 'codeforces.scrape', () =>
-          fetchCodeforcesStats(username)
-        )
+        withTrace(req.traceId, "codeforces.scrape", () =>
+          fetchCodeforcesStats(username),
+        ),
       );
 
       const normalized = normalizeCodeforces({ ...raw, username });
@@ -115,9 +115,11 @@ app.get(
       if (error.message === "User not found") status = 404;
       if (error.message === "Rate limited") status = 429;
 
-      res.status(status).json({ success: false, error: error.message, traceId: req.traceId });
+      res
+        .status(status)
+        .json({ success: false, error: error.message, traceId: req.traceId });
     }
-  }
+  },
 );
 
 /**
@@ -126,16 +128,16 @@ app.get(
  * ----------------------------
  */
 app.get(
-  '/api/codechef/:username',
-  validate({ username: { required: true, type: 'username' } }),
+  "/api/codechef/:username",
+  validate({ username: { required: true, type: "username" } }),
   async (req, res) => {
     try {
       const username = req.params.username;
 
       const raw = await backpressureManager.process(() =>
-        withTrace(req.traceId, 'codechef.scrape', () =>
-          fetchCodeChefStats(username)
-        )
+        withTrace(req.traceId, "codechef.scrape", () =>
+          fetchCodeChefStats(username),
+        ),
       );
 
       const normalized = normalizeCodeChef({ ...raw, username });
@@ -147,9 +149,11 @@ app.get(
       if (error.message === "User not found") status = 404;
       if (error.message === "Rate limited") status = 429;
 
-      res.status(status).json({ success: false, error: error.message, traceId: req.traceId });
+      res
+        .status(status)
+        .json({ success: false, error: error.message, traceId: req.traceId });
     }
-  }
+  },
 );
 
 app.use(errorHandler);
