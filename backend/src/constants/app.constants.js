@@ -30,6 +30,10 @@ export const VALIDATION = {
   USERNAME_MIN_LENGTH: 1,
   USERNAME_MAX_LENGTH: 50,
   USERNAME_PATTERN: /^[a-zA-Z0-9_-]+$/,
+  PASSWORD_MIN_LENGTH: 8,
+  PASSWORD_MAX_LENGTH: 128,
+  NAME_MIN_LENGTH: 2,
+  NAME_MAX_LENGTH: 50,
 };
 
 // Platforms
@@ -51,6 +55,9 @@ export const MESSAGES = {
   RATE_LIMIT_EXCEEDED: 'Rate limit exceeded, please try again later',
   INTERNAL_ERROR: 'Internal server error',
   SCRAPING_FAILED: 'Failed to fetch data from platform',
+  UNAUTHORIZED_ACCESS: 'Unauthorized access',
+  FORBIDDEN_ACCESS: 'Access forbidden',
+  VALIDATION_FAILED: 'Validation failed',
 };
 
 // Environment
@@ -58,4 +65,13 @@ export const ENVIRONMENTS = {
   DEVELOPMENT: 'development',
   PRODUCTION: 'production',
   STAGING: 'staging',
+};
+
+// Security Constants
+export const SECURITY = {
+  BCRYPT_ROUNDS: 12,
+  JWT_EXPIRES_IN: '7d',
+  MAX_LOGIN_ATTEMPTS: 5,
+  LOCKOUT_TIME: 15 * 60 * 1000, // 15 minutes
+  SESSION_TIMEOUT: 24 * 60 * 60 * 1000, // 24 hours
 };
