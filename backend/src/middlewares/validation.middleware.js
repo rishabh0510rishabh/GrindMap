@@ -1,65 +1,54 @@
-const validators = {
-  username: (value) => {
-    if (!value || typeof value !== 'string') return false;
-    if (value.length < 1 || value.length > 50) return false;
-    return /^[a-zA-Z0-9_-]+$/.test(value);
-  },
-  
-  email: (value) => {
-    if (!value || typeof value !== 'string') return false;
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-  },
-  
-  platform: (value) => {
-    const validPlatforms = ['leetcode', 'codeforces', 'codechef', 'github', 'atcoder'];
-    return validPlatforms.includes(value?.toLowerCase());
-  }
-};
+import { body, param, validationResult } from 'express-validator';
+import xss from 'xss';
+import { AppError } from '../utils/appError.js';
 
-export const validate = (rules) => {
-  return (req, res, next) => {
-    const errors = [];
-    
-    for (const [field, rule] of Object.entries(rules)) {
-      const value = req.params[field] || req.body[field] || req.query[field];
-      
-      if (rule.required && !value) {
-        errors.push(`${field} is required`);
-        continue;
-      }
-      
-      if (value && rule.type && !validators[rule.type](value)) {
-        errors.push(`${field} is invalid`);
-      }
-    }
-    
-    if (errors.length > 0) {
-      return res.status(400).json({ error: 'Validation failed', details: errors });
-    }
-    
-    next();
-  };
-};
-
-export const sanitize = (req, res, next) => {
-  const sanitizeString = (str) => {
-    if (typeof str !== 'string') return str;
-    return str.trim().replace(/[<>\"'&]/g, '');
-  };
-  
+// Sanitization middleware
+const sanitizeInput = (req, res, next) => {
   // Sanitize params
-  for (const key in req.params) {
-    req.params[key] = sanitizeString(req.params[key]);
-  }
-  
+  Object.keys(req.params).forEach(key => {
+    if (typeof req.params[key] === 'string') {
+      req.params[key] = xss(req.params[key].trim());
+    }
+  });
+
+  // Sanitize query
+  Object.keys(req.query).forEach(key => {
+    if (typeof req.query[key] === 'string') {
+      req.query[key] = xss(req.query[key].trim());
+    }
+  });
+
   // Sanitize body
   if (req.body && typeof req.body === 'object') {
-    for (const key in req.body) {
+    Object.keys(req.body).forEach(key => {
       if (typeof req.body[key] === 'string') {
-        req.body[key] = sanitizeString(req.body[key]);
+        req.body[key] = xss(req.body[key].trim());
       }
-    }
+    });
   }
-  
+
   next();
 };
+
+// Validation error handler
+const handleValidationErrors = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const errorMessages = errors.array().map(error => error.msg);
+    throw new AppError(errorMessages.join(', '), 400);
+  }
+  next();
+};
+
+// Username validation rules
+const validateUsername = [
+  param('username')
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Username must be 1-50 characters')
+    .matches(/^[a-zA-Z0-9_-]+$/)
+    .withMessage('Username can only contain letters, numbers, hyphens, and underscores')
+    .escape(),
+  handleValidationErrors
+];
+
+export { sanitizeInput, validateUsername, handleValidationErrors };
