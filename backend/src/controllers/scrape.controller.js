@@ -45,6 +45,42 @@ class ScrapeController {
   });
 
   /**
+   * Get AtCoder user statistics with real-time updates
+   */
+  getAtCoderStats = asyncHandler(async (req, res) => {
+    const { username } = req.params;
+    const userId = req.user?.id;
+    const platformService = ServiceRegistry.getPlatformService();
+    const data = await platformService.fetchAtCoderData(username, userId);
+    
+    sendSuccess(res, data, `AtCoder data fetched for ${username}`);
+  });
+
+  /**
+   * Get GitHub user statistics with real-time updates
+   */
+  getGitHubStats = asyncHandler(async (req, res) => {
+    const { username } = req.params;
+    const userId = req.user?.id;
+    const platformService = ServiceRegistry.getPlatformService();
+    const data = await platformService.fetchGitHubData(username, userId);
+    
+    sendSuccess(res, data, `GitHub data fetched for ${username}`);
+  });
+
+  /**
+   * Get SkillRack user statistics with real-time updates
+   */
+  getSkillRackStats = asyncHandler(async (req, res) => {
+    const { username } = req.params;
+    const userId = req.user?.id;
+    const platformService = ServiceRegistry.getPlatformService();
+    const data = await platformService.fetchSkillRackData(username, userId);
+    
+    sendSuccess(res, data, `SkillRack data fetched for ${username}`);
+  });
+
+  /**
    * Get list of supported platforms
    */
   getSupportedPlatforms = asyncHandler(async (req, res) => {

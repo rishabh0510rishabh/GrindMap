@@ -2,7 +2,7 @@ import express from 'express';
 import ScrapeController from '../controllers/scrape.controller.js';
 import { validateUsername } from '../middlewares/validation.middleware.js';
 import { scrapingLimiter } from '../middlewares/rateLimiter.middleware.js';
-import { cacheMiddleware } from '../middlewares/cache.middleware.js';
+import { platformCache, userCache } from '../middlewares/cache.middleware.js';
 import { auditLogger } from '../middlewares/audit.middleware.js';
 
 const router = express.Router();
@@ -17,7 +17,7 @@ router.get(
   scrapingLimiter,
   validateUsername,
   auditLogger('FETCH_LEETCODE_STATS'),
-  cacheMiddleware(300), // 5 minutes cache
+  platformCache, // 15 minutes cache
   ScrapeController.getLeetCodeStats
 );
 
@@ -31,7 +31,7 @@ router.get(
   scrapingLimiter,
   validateUsername,
   auditLogger('FETCH_CODEFORCES_STATS'),
-  cacheMiddleware(600), // 10 minutes cache
+  platformCache, // 15 minutes cache
   ScrapeController.getCodeforcesStats
 );
 
@@ -45,8 +45,50 @@ router.get(
   scrapingLimiter,
   validateUsername,
   auditLogger('FETCH_CODECHEF_STATS'),
-  cacheMiddleware(600), // 10 minutes cache
+  platformCache, // 15 minutes cache
   ScrapeController.getCodeChefStats
+);
+
+/**
+ * @route   GET /api/scrape/atcoder/:username
+ * @desc    Get AtCoder user statistics
+ * @access  Public (rate limited + cached + audited)
+ */
+router.get(
+  '/atcoder/:username',
+  scrapingLimiter,
+  validateUsername,
+  auditLogger('FETCH_ATCODER_STATS'),
+  platformCache, // 15 minutes cache
+  ScrapeController.getAtCoderStats
+);
+
+/**
+ * @route   GET /api/scrape/github/:username
+ * @desc    Get GitHub user statistics
+ * @access  Public (rate limited + cached + audited)
+ */
+router.get(
+  '/github/:username',
+  scrapingLimiter,
+  validateUsername,
+  auditLogger('FETCH_GITHUB_STATS'),
+  platformCache, // 15 minutes cache
+  ScrapeController.getGitHubStats
+);
+
+/**
+ * @route   GET /api/scrape/skillrack/:username
+ * @desc    Get SkillRack user statistics
+ * @access  Public (rate limited + cached + audited)
+ */
+router.get(
+  '/skillrack/:username',
+  scrapingLimiter,
+  validateUsername,
+  auditLogger('FETCH_SKILLRACK_STATS'),
+  platformCache, // 15 minutes cache
+  ScrapeController.getSkillRackStats
 );
 
 /**
@@ -56,7 +98,7 @@ router.get(
  */
 router.get(
   '/platforms', 
-  cacheMiddleware(3600), // 1 hour cache
+  platformCache, // 15 minutes cache
   ScrapeController.getSupportedPlatforms
 );
 

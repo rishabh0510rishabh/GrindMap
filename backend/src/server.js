@@ -16,6 +16,7 @@ import WebSocketManager from './utils/websocketManager.js';
 // Import routes
 import scrapeRoutes from './routes/scrape.routes.js';
 import authRoutes from './routes/auth.routes.js';
+import cacheRoutes from './routes/cache.routes.js';
 
 // Import constants
 import { HTTP_STATUS, ENVIRONMENTS } from './constants/app.constants.js';
@@ -23,7 +24,7 @@ import Logger from './utils/logger.js';
 
 const app = express();
 const server = createServer(app);
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5002;
 const NODE_ENV = process.env.NODE_ENV || ENVIRONMENTS.DEVELOPMENT;
 
 // Connect to database
@@ -75,6 +76,7 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/scrape', scrapeRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/cache', cacheRoutes);
 
 // API documentation endpoint
 app.get('/api', (req, res) => {
@@ -85,6 +87,7 @@ app.get('/api', (req, res) => {
     endpoints: {
       scraping: '/api/scrape',
       authentication: '/api/auth',
+      cache: '/api/cache',
       websocket: '/ws',
       health: '/health',
     },

@@ -21,8 +21,10 @@ const config = {
   PORT: process.env.PORT || 5000,
   NODE_ENV: process.env.NODE_ENV || 'development',
 
-  // API Keys
-  GITHUB_TOKEN: process.env.GITHUB_TOKEN || null,
+  // Cache Configuration
+  CACHE_PLATFORM_TTL: parseInt(process.env.CACHE_PLATFORM_TTL) || 900, // 15 minutes
+  CACHE_USER_TTL: parseInt(process.env.CACHE_USER_TTL) || 300, // 5 minutes
+  CACHE_ENABLED: process.env.CACHE_ENABLED !== 'false',
 };
 
 // Validate critical environment variables
