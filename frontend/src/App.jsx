@@ -8,14 +8,15 @@ import GoalDashboard from "./components/GoalDashboard";
 import UsernameInputs from "./components/UsernameInputs";
 import PlatformCard from "./components/PlatformCard";
 import ThemeToggle from "./components/ThemeToggle";
+import ContributorsHallOfFame from "./components/ContributorsHallOfFame";
 
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { useGrindMapData } from "./hooks/useGrindMapData";
 import { PLATFORMS, OVERALL_GOAL } from "./utils/platforms";
 
 /* Lazy-loaded analytics dashboard */
-const AnalyticsDashboard = lazy(() =>
-  import("./components/AnalyticsDashboard")
+const AnalyticsDashboard = lazy(
+  () => import("./components/AnalyticsDashboard"),
 );
 
 function AppContent() {
@@ -23,6 +24,7 @@ function AppContent() {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showBadges, setShowBadges] = useState(false);
   const [showGoals, setShowGoals] = useState(false);
+  const [showContributors, setShowContributors] = useState(false);
   const [expanded, setExpanded] = useState(null);
 
   const {
@@ -49,7 +51,10 @@ function AppContent() {
           <DemoPage onBack={() => setShowDemo(false)} />
         ) : showAnalytics ? (
           <>
-            <button onClick={() => setShowAnalytics(false)} className="back-btn">
+            <button
+              onClick={() => setShowAnalytics(false)}
+              className="back-btn"
+            >
               ← Back to Main
             </button>
 
@@ -72,6 +77,8 @@ function AppContent() {
             </button>
             <GoalDashboard />
           </>
+        ) : showContributors ? (
+          <ContributorsHallOfFame onBack={() => setShowContributors(false)} />
         ) : (
           <>
             <div style={{ textAlign: "center", marginBottom: "20px" }}>
@@ -134,6 +141,20 @@ function AppContent() {
               >
                 🎯 Goals
               </button>
+              <button
+                onClick={() => setShowContributors(true)}
+                style={{
+                  padding: "10px 20px",
+                  fontSize: "1em",
+                  background: "#3b82f6",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                }}
+              >
+                👥 Contributors
+              </button>
             </div>
 
             <ThemeToggle />
@@ -188,8 +209,7 @@ function AppContent() {
                 {PLATFORMS.map((plat) => {
                   const submittedToday = hasSubmittedToday(plat.key);
                   const hasData =
-                    platformData[plat.key] &&
-                    !platformData[plat.key].error;
+                    platformData[plat.key] && !platformData[plat.key].error;
 
                   return (
                     <div
@@ -198,8 +218,8 @@ function AppContent() {
                         submittedToday
                           ? "done"
                           : hasData
-                          ? "active-no-sub"
-                          : "missed"
+                            ? "active-no-sub"
+                            : "missed"
                       }`}
                     >
                       <span>{plat.name}</span>
@@ -207,8 +227,8 @@ function AppContent() {
                         {submittedToday
                           ? "✅ Coded Today"
                           : hasData
-                          ? "✅ Active (No submission today)"
-                          : "❌ No Data"}
+                            ? "✅ Active (No submission today)"
+                            : "❌ No Data"}
                       </span>
                     </div>
                   );
