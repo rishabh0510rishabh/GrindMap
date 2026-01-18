@@ -185,7 +185,10 @@ function UsernameInputs({ usernames, onChange, onFetch, loading }) {
               <input
                 type="text"
                 value={usernames[key]}
-                onChange={(e) => validateAndChange(key, e.target.value)}
+                onChange={(e) => {
+                  setFocusedPlatform(key); // Re-open dropdown on any edit
+                  validateAndChange(key, e.target.value);
+                }}
                 onFocus={() => handleFocus(key)}
                 onBlur={handleBlur}
                 onKeyDown={(e) => handleKeyDown(e, key)}
@@ -202,107 +205,111 @@ function UsernameInputs({ usernames, onChange, onFetch, loading }) {
                   className="history-dropdown"
                   style={{
                     position: "absolute",
-                    top: "45px",
+                    top: "40px", // Closer to input
                     left: 0,
                     right: 0,
-                    backgroundColor: "rgba(15, 23, 42, 0.95)", // dark slate
+                    backgroundColor: "rgba(255, 255, 255, 0.98)", // Light theme for minimalist
                     backdropFilter: "blur(12px)",
-                    borderRadius: "12px",
+                    borderRadius: "8px", // Smaller radius
                     boxShadow:
-                      "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)",
+                      "0 4px 15px -3px rgba(0, 0, 0, 0.1), 0 2px 6px -2px rgba(0, 0, 0, 0.05)",
                     zIndex: 1000,
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    border: "1px solid rgba(0, 0, 0, 0.05)",
                     overflow: "hidden",
-                    animation: "dropdownFadeIn 0.2s ease-out",
+                    animation: "dropdownFadeIn 0.15s ease-out",
                   }}
                 >
                   <div
                     style={{
-                      padding: "10px 14px",
-                      fontSize: "0.7em",
+                      padding: "8px 12px",
+                      fontSize: "0.65em",
                       fontWeight: "600",
                       letterSpacing: "0.05em",
-                      color: "#64748b",
-                      borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
-                      background: "rgba(255, 255, 255, 0.02)",
+                      color: "#94a3b8",
+                      borderBottom: "1px solid #f1f5f9",
+                      background: "#f8fafc",
                     }}
                   >
                     RECENT SEARCHES
                   </div>
-                  <div style={{ maxHeight: "200px", overflowY: "auto" }}>
+                  <div style={{ maxHeight: "180px", overflowY: "auto" }}>
                     {platformHistory.map((user, index) => (
                       <div
                         key={user}
-                        onClick={() => {
+                        onMouseDown={(e) => {
+                          e.preventDefault(); // Prevent input blur
                           validateAndChange(key, user);
                           setFocusedPlatform(null);
                         }}
                         onMouseEnter={() => setSelectedIndex(index)}
                         style={{
-                          padding: "12px 14px",
+                          padding: "10px 14px",
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "center",
                           cursor: "pointer",
                           transition: "all 0.15s ease",
-                          color: index === selectedIndex ? "#fff" : "#cbd5e1",
+                          color:
+                            index === selectedIndex ? "#0f172a" : "#64748b",
                           backgroundColor:
-                            index === selectedIndex
-                              ? "rgba(255, 255, 255, 0.1)"
-                              : "transparent",
+                            index === selectedIndex ? "#f1f5f9" : "transparent",
+                          fontSize: "0.9em",
+                          borderRadius: "6px",
+                          marginBottom: "2px",
                         }}
                       >
                         <div
                           style={{
                             display: "flex",
                             alignItems: "center",
-                            gap: "12px",
+                            gap: "10px",
                           }}
                         >
-                          <span
-                            style={{
-                              fontSize: "1.1em",
-                              opacity: index === selectedIndex ? 1 : 0.5,
-                            }}
-                          >
-                            🕒
-                          </span>
+                          {/* Minimalist: No emoji, just clean text */}
                           <span
                             style={{
                               fontWeight:
-                                index === selectedIndex ? "500" : "400",
+                                index === selectedIndex ? "600" : "400",
+                              transition: "font-weight 0.1s ease",
                             }}
                           >
                             {user}
                           </span>
                         </div>
                         <button
-                          onClick={(e) => removeHistoryItem(key, user, e)}
-                          title="Remove from history"
+                          onMouseDown={(e) => {
+                            e.preventDefault(); // Prevent blur
+                            e.stopPropagation(); // Prevent item selection
+                            removeHistoryItem(key, user, e);
+                          }}
+                          title="Remove"
                           style={{
-                            padding: "4px 8px",
-                            color: "#64748b",
+                            padding: "4px",
+                            color:
+                              index === selectedIndex
+                                ? "#94a3b8"
+                                : "transparent",
                             background: "transparent",
                             border: "none",
                             cursor: "pointer",
                             fontSize: "1.2em",
-                            borderRadius: "6px",
-                            transition: "all 0.2s",
+                            borderRadius: "4px",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
+                            transition: "all 0.2s ease",
+                            opacity: index === selectedIndex ? 1 : 0,
                           }}
                           onMouseEnter={(e) => {
                             e.target.style.color = "#ef4444";
-                            e.target.style.backgroundColor =
-                              "rgba(239, 68, 68, 0.15)";
+                            e.target.style.backgroundColor = "#fee2e2";
                           }}
                           onMouseLeave={(e) => {
-                            e.target.style.color = "#64748b";
+                            e.target.style.color = "#94a3b8";
                             e.target.style.backgroundColor = "transparent";
                           }}
                         >
-                          ×
+                          &times;
                         </button>
                       </div>
                     ))}
@@ -352,17 +359,17 @@ function UsernameInputs({ usernames, onChange, onFetch, loading }) {
           }
         }
         .history-dropdown::-webkit-scrollbar {
-          width: 6px;
+          width: 4px;
         }
         .history-dropdown::-webkit-scrollbar-track {
           background: transparent;
         }
         .history-dropdown::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.1);
-          borderRadius: 3px;
+          background: #e2e8f0;
+          borderRadius: 4px;
         }
         .history-dropdown::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.2);
+          background: #cbd5e1;
         }
       `}</style>
     </div>
