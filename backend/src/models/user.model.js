@@ -116,24 +116,43 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Method to increment login attempts
-userSchema.methods.incLoginAttempts = function() {
-  // If we have a previous lock that has expired, restart at 1
-  if (this.lockUntil && this.lockUntil < Date.now()) {
-    return this.updateOne({
-      $unset: { lockUntil: 1 },
-      $set: { loginAttempts: 1 }
+// Method to increment login attempts (ATOMIC)
+userSchema.methods.incLoginAttempts = async function() {
+  const session = await mongoose.startSession();
+  
+  try {
+    return await session.withTransaction(async () => {
+      // Re-fetch user with session lock
+      const user = await mongoose.model('User').findById(this._id).session(session);
+      
+      // Check if lock has expired
+      if (user.lockUntil && user.lockUntil < Date.now()) {
+        return await mongoose.model('User').findByIdAndUpdate(
+          this._id,
+          {
+            $unset: { lockUntil: 1 },
+            $set: { loginAttempts: 1 }
+          },
+          { session, new: true }
+        );
+      }
+      
+      const updates = { $inc: { loginAttempts: 1 } };
+      
+      // Lock account after max attempts
+      if (user.loginAttempts + 1 >= SECURITY.MAX_LOGIN_ATTEMPTS) {
+        updates.$set = { lockUntil: Date.now() + SECURITY.LOCKOUT_TIME };
+      }
+      
+      return await mongoose.model('User').findByIdAndUpdate(
+        this._id,
+        updates,
+        { session, new: true }
+      );
     });
+  } finally {
+    await session.endSession();
   }
-  
-  const updates = { $inc: { loginAttempts: 1 } };
-  
-  // Lock account after max attempts
-  if (this.loginAttempts + 1 >= SECURITY.MAX_LOGIN_ATTEMPTS && !this.isLocked) {
-    updates.$set = { lockUntil: Date.now() + SECURITY.LOCKOUT_TIME };
-  }
-  
-  return this.updateOne(updates);
 };
 
 // Method to reset login attempts

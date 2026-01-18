@@ -5,6 +5,7 @@ import { AppError, ERROR_CODES } from "../utils/appError.js";
 import { sendSuccess, sendError } from "../utils/response.helper.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { HTTP_STATUS, MESSAGES } from "../constants/app.constants.js";
+import AtomicOperations from "../utils/atomicOperations.js";
 
 /**
  * JWT token expiration time
@@ -60,14 +61,14 @@ class AuthController {
   });
 
   /**
-   * Login existing user
+   * Login existing user (ATOMIC)
    * @route POST /api/auth/login
    */
   loginUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
-    // Find user by email
-    const user = await User.findOne({ email });
+    // Find user with password field
+    const user = await User.findOne({ email }).select('+password +loginAttempts +lockUntil');
     if (!user) {
       throw new AppError(
         "Invalid email or password", 
@@ -76,9 +77,20 @@ class AuthController {
       );
     }
 
+    // Check if account is locked
+    if (user.lockUntil && user.lockUntil > Date.now()) {
+      throw new AppError(
+        "Account temporarily locked due to too many failed attempts", 
+        HTTP_STATUS.UNAUTHORIZED, 
+        ERROR_CODES.ACCOUNT_LOCKED
+      );
+    }
+
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
+      // Atomic increment of login attempts
+      await user.incLoginAttempts();
       throw new AppError(
         "Invalid email or password", 
         HTTP_STATUS.UNAUTHORIZED, 
@@ -86,8 +98,12 @@ class AuthController {
       );
     }
 
-    // Generate token and send response
+    // Successful login - atomic token update
     const token = generateToken(user._id);
+    await AtomicOperations.updateTokens(user._id, {
+      lastLogin: new Date()
+    });
+
     const userData = {
       id: user._id,
       name: user.name,
