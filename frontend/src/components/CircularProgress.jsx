@@ -2,13 +2,16 @@ import React from 'react';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 
-const CircularProgress = ({ percentage = 0, color = '#ffa116', size = 'medium' }) => {
+const CircularProgress = ({ percentage = 0, color, size = 'medium' }) => {
   const sizes = {
     small: 100,
     medium: 150,
     large: 240
   };
   const width = sizes[size];
+
+  // Use theme color if not provided
+  const progressColor = color || 'var(--theme-progress)';
 
   return (
     <div style={{ width: `${width}px`, height: `${width}px`, margin: '20px auto' }}>
@@ -17,9 +20,9 @@ const CircularProgress = ({ percentage = 0, color = '#ffa116', size = 'medium' }
         text={`${percentage}%`}
         styles={buildStyles({
           textSize: '16px',
-          pathColor: color,
-          textColor: '#1e293b',
-          trailColor: '#e2e8f0',
+          pathColor: progressColor,
+          textColor: 'var(--theme-text)',
+          trailColor: 'var(--theme-border)',
           pathTransitionDuration: 0.8,
         })}
       />

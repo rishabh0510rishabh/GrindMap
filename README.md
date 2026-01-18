@@ -229,6 +229,19 @@ npm install
 npm start
 ```
 
+### 🔐 Environment Variables
+
+GrindMap uses environment variables for backend configuration.
+
+#### Backend Setup
+
+Create a `.env` file inside the `backend` directory using the provided `.env.example` as reference.
+
+```bash
+cd backend
+cp .env.example .env
+
+
 ### Alternative: Docker Setup 🐳
 
 For a containerized setup with consistent environments across machines:
