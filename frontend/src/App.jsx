@@ -106,6 +106,7 @@ function App() {
                 expanded={expanded}
                 onToggle={toggleExpand}
                 percentage={getPlatformPercentage(plat.key)}
+                loading={loading}
               />
             ))}
           </div>
