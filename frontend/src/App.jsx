@@ -4,6 +4,7 @@ import CircularProgress from "./components/CircularProgress";
 
 import DemoPage from "./components/DemoPage";
 import AnalyticsDashboard from "./components/AnalyticsDashboard";
+import BadgeCollection from "./components/BadgeCollection";
 import UsernameInputs from "./components/UsernameInputs";
 import PlatformCard from "./components/PlatformCard";
 import { useGrindMapData } from "./hooks/useGrindMapData";
@@ -12,6 +13,7 @@ import { PLATFORMS, OVERALL_GOAL } from "./utils/platforms";
 function App() {
   const [showDemo, setShowDemo] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showBadges, setShowBadges] = useState(false);
   const [expanded, setExpanded] = useState(null);
 
   const {
@@ -45,6 +47,13 @@ function App() {
           </button>
           <AnalyticsDashboard platformData={platformData} />
         </>
+      ) : showBadges ? (
+        <>
+          <button onClick={() => setShowBadges(false)} className="back-btn">
+            ← Back to Main
+          </button>
+          <BadgeCollection />
+        </>
       ) : (
         <>
           <div style={{ textAlign: "center", marginBottom: "20px" }}>
@@ -73,9 +82,24 @@ function App() {
                 border: "none",
                 borderRadius: "8px",
                 cursor: "pointer",
+                marginRight: "10px",
               }}
             >
               View Analytics
+            </button>
+            <button
+              onClick={() => setShowBadges(true)}
+              style={{
+                padding: "10px 20px",
+                fontSize: "1em",
+                background: "#9b59b6",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+              }}
+            >
+              🏆 Achievements
             </button>
           </div>
           <h1>GrindMap</h1>
