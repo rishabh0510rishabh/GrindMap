@@ -1,9 +1,22 @@
 import React from "react";
 import CircularProgress from "./CircularProgress";
 import ActivityHeatmap from "./ActivityHeatmap";
+import PlatformCardSkeleton from "./PlatformCardSkeleton";
 
-const PlatformCard = ({ platform, data, expanded, onToggle, percentage }) => {
+const PlatformCard = ({
+  platform,
+  data,
+  expanded,
+  onToggle,
+  percentage,
+  loading,
+}) => {
   const isExpanded = expanded === platform.key;
+
+  if (loading) {
+  return <PlatformCardSkeleton platform={platform} />;
+}
+
 
   if (!data) {
     return (
@@ -116,21 +129,16 @@ const PlatformCard = ({ platform, data, expanded, onToggle, percentage }) => {
 
               <div className="heatmap-section">
                 <h4>Submission Heatmap</h4>
-                {/* Ensure data.submissionCalendar is passed correctly or getHeatmapData is used */}
                 {data.submissionCalendar ? (
                   <ActivityHeatmap
-                    data={
-                      // We need to move getHeatmapData helper or pass raw calendar
-                      // For now assuming data is pre-processed or we handle it here
-                      Object.entries(data.submissionCalendar).map(
-                        ([ts, count]) => ({
-                          date: new Date(parseInt(ts) * 1000)
-                            .toISOString()
-                            .split("T")[0],
-                          count,
-                        }),
-                      )
-                    }
+                    data={Object.entries(data.submissionCalendar || {}).map(
+                      ([ts, count]) => ({
+                        date: new Date(parseInt(ts) * 1000)
+                          .toISOString()
+                          .split("T")[0],
+                        count,
+                      }),
+                    )}
                   />
                 ) : (
                   <p>No calendar data</p>
