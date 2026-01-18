@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PLATFORMS } from "../utils/platforms";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 export const useGrindMapData = () => {
   const [usernames, setUsernames] = useState({
     leetcode: "",
@@ -30,7 +31,7 @@ export const useGrindMapData = () => {
       let data = null;
       if (plat.key === "leetcode") {
         const res = await fetch(
-          `http://localhost:5000/api/leetcode/${username}`,
+          `${API_BASE_URL}/api/leetcode/${username}`,
         );
         const result = await res.json();
         if (result.data) {
@@ -40,7 +41,7 @@ export const useGrindMapData = () => {
         }
       } else if (plat.key === "codeforces") {
         const res = await fetch(
-          `http://localhost:5000/api/codeforces/${username}`,
+          `${API_BASE_URL}/api/codeforces/${username}`,
         );
         const result = await res.json();
         if (result.success && result.data) {
@@ -56,7 +57,7 @@ export const useGrindMapData = () => {
         }
       } else if (plat.key === "codechef") {
         const res = await fetch(
-          `http://localhost:5000/api/codechef/${username}`,
+          `${API_BASE_URL}/api/codechef/${username}`,
         );
         const result = await res.json();
         if (result.success && result.data) {
