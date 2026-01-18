@@ -23,6 +23,10 @@ import { errorHandler } from './middlewares/error.middleware.js';
 import { tracingMiddleware } from './middlewares/tracing.middleware.js';
 import { withTrace } from './utils/serviceTracer.util.js';
 import { traceRoutes } from './routes/trace.routes.js';
+import authRoutes from './routes/auth.routes.js';
+import userRoutes from './routes/user.routes.js';
+import friendsRoutes from './routes/friends.routes.js';
+import leaderboardRoutes from './routes/leaderboard.routes.js';
 import { gracefulShutdown } from './utils/shutdown.util.js';
 
 const app = express();
@@ -35,6 +39,13 @@ app.use(generalLimiter);
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(sanitizeInput);
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/friends', friendsRoutes);
+app.use('/api/leaderboard', leaderboardRoutes);
+traceRoutes(app);
 
 app.get('/api/leetcode/:username', scrapingLimiter, validateUsername, asyncHandler(async (req, res) => {
   const { username } = req.params;

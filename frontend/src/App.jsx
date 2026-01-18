@@ -7,6 +7,9 @@ import AnalyticsDashboard from "./components/AnalyticsDashboard";
 import BadgeCollection from "./components/BadgeCollection";
 import UsernameInputs from "./components/UsernameInputs";
 import PlatformCard from "./components/PlatformCard";
+import Leaderboard from "./components/Leaderboard";
+import Friends from "./components/Friends";
+import Profile from "./components/Profile";
 import { useGrindMapData } from "./hooks/useGrindMapData";
 import { PLATFORMS, OVERALL_GOAL } from "./utils/platforms";
 
@@ -14,6 +17,9 @@ function App() {
   const [showDemo, setShowDemo] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showBadges, setShowBadges] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showFriends, setShowFriends] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [expanded, setExpanded] = useState(null);
 
   const {
@@ -56,22 +62,20 @@ function App() {
           </button>
           <BadgeCollection />
         </>
+      ) : showLeaderboard ? (
+        <>
+          <Leaderboard onBack={() => setShowLeaderboard(false)} />
+        </>
+      ) : showFriends ? (
+        <>
+          <Friends onBack={() => setShowFriends(false)} />
+        </>
+      ) : showProfile ? (
+        <>
+          <Profile onBack={() => setShowProfile(false)} />
+        </>
       ) : (
         <>
-        <div className="top-nav">
-  <button className="nav-btn demo" onClick={() => setShowDemo(true)}>
-    View Demo
-  </button>
-
-  <button className="nav-btn analytics" onClick={() => setShowAnalytics(true)}>
-    View Analytics
-  </button>
-
-  <button className="nav-btn badges" onClick={() => setShowBadges(true)}>
-    🏆 Achievements
-  </button>
-</div>
-
           <h1>GrindMap</h1>
 
           <UsernameInputs

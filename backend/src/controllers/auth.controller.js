@@ -7,16 +7,17 @@ const generateToken = (id) => {
 };
 
 export const registerUser = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, username, email, password } = req.body;
 
-  const exists = await User.findOne({ email });
+  const exists = await User.findOne({ $or: [{ email }, { username }] });
   if (exists) return res.status(400).json({ message: "User already exists" });
 
-  const user = await User.create({ name, email, password });
+  const user = await User.create({ name, username, email, password });
 
   res.status(201).json({
     id: user._id,
     name: user.name,
+    username: user.username,
     email: user.email,
     token: generateToken(user._id),
   });
@@ -34,6 +35,7 @@ export const loginUser = async (req, res) => {
   res.json({
     id: user._id,
     name: user.name,
+    username: user.username,
     email: user.email,
     token: generateToken(user._id),
   });
