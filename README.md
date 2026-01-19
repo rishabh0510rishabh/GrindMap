@@ -1,6 +1,8 @@
+<div align="center">
+
 # 🚀 GrindMap
 
-<div align="center">
+*Repo ranked #19 @ECWoC 26*
 
 <img src="https://img.shields.io/badge/Track%20Your-Coding%20Journey-FF6B6B?style=for-the-badge&logo=github&logoColor=white" alt="Track Your Coding Journey" />
 
@@ -18,6 +20,8 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=flat&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 
 [🌐 Live Demo](#-interactive-demo) • [📖 Documentation](#) • [🤝 Contributing](CONTRIBUTING.md) • [🐛 Issues](../../issues) • [💬 Discussions](../../discussions)
+
+</div>
 
 ---
 
@@ -44,7 +48,7 @@
 
 ## ✨ Features
 
-<div align="center">
+<div>
 
 ### 🎯 **Multi-Platform Tracking**
 Track your coding journey across **7+ competitive programming platforms** with unified analytics and progress visualization.
@@ -137,7 +141,7 @@ Fetch live statistics using official APIs and scraping techniques, ensuring your
 
 ## 🎮 Interactive Demo
 
-<div align="center">
+<div>
 
 **🎯 Experience GrindMap Without Setup!**
 
@@ -228,6 +232,19 @@ cd GrindMap/frontend
 npm install
 npm start
 ```
+
+### 🔐 Environment Variables
+
+GrindMap uses environment variables for backend configuration.
+
+#### Backend Setup
+
+Create a `.env` file inside the `backend` directory using the provided `.env.example` as reference.
+
+```bash
+cd backend
+cp .env.example .env
+
 
 ### Alternative: Docker Setup 🐳
 
@@ -333,7 +350,7 @@ User authentication endpoint.
 
 ## 📸 Screenshots
 
-<div align="center">
+<div>
 
 ### 🖥️ Dashboard Overview
 *Main dashboard showing multi-platform tracking with progress rings*
@@ -368,7 +385,7 @@ User authentication endpoint.
 
 ## 🤝 Contributing
 
-<div align="center">
+<div >
 
 **We ❤️ contributions! Every contribution makes GrindMap better for everyone.**
 
@@ -422,10 +439,11 @@ New to open source? Start here!
 
 ## 🗺️ Roadmap
 
-### 🎯 Q1 2026 (Current)
+### 🎯 Q1 2024 (Current)
 - [x] Multi-platform support (LeetCode, CodeForces, CodeChef)
 - [x] Real-time data fetching
 - [x] Interactive demo mode
+- [x] Docker containerization
 - [ ] Mobile app development
 - [ ] Advanced analytics dashboard
 
@@ -471,8 +489,8 @@ A: We use official APIs where available, and safe scraping techniques for others
 **Q: Can I contribute new platform support?**  
 A: Absolutely! Check our [Contributing Guide](CONTRIBUTING.md) for details.
 
-**Q: Is there a mobile app?**  
-A: Not yet, but it's on our roadmap for Q2 2026.
+**Q: Is there a mobile app?**
+A: Not yet, but it's on our roadmap for Q2 2024.
 
 ### 🐛 Troubleshooting
 
@@ -491,7 +509,7 @@ A: Try clearing browser cache or using an incognito window.
 
 ## 📝 License
 
-<div align="center">
+<div>
 
 **GrindMap** is licensed under the **MIT License**.
 
@@ -525,7 +543,7 @@ SOFTWARE.
 
 ## 🙏 Acknowledgments
 
-<div align="center">
+<div>
 
 **GrindMap wouldn't be possible without these amazing communities and tools:**
 
@@ -560,7 +578,7 @@ A huge thank you to all our [contributors](../../contributors) who make GrindMap
 
 ## 📞 Contact
 
-<div align="center">
+<div>
 
 **Got questions, feedback, or just want to say hi? We'd love to hear from you!**
 
@@ -595,7 +613,7 @@ If GrindMap helps your coding journey, consider:
 
 <div align="center">
 
-**© 2026 GrindMap. Made with ❤️ by [Yugendra N](https://github.com/Yugenjr)**
+**© 2024 GrindMap. Made with ❤️ by [Yugendra N](https://github.com/Yugenjr)**
 
 [![GitHub](https://img.shields.io/badge/GitHub-Yugenjr-181717?style=flat&logo=github&logoColor=white)](https://github.com/Yugenjr)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-YugendraN-0077B5?style=flat&logo=linkedin&logoColor=white)](https://linkedin.com/in/yugendran)
@@ -724,7 +742,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
 
-**© 2026 GrindMap. Made with ❤️ by [Yugendra N](https://github.com/Yugenjr)**
+**© 2024 GrindMap. Made with ❤️ by [Yugendra N](https://github.com/Yugenjr)**
 
 [![GitHub](https://img.shields.io/badge/GitHub-Yugenjr-181717?style=flat&logo=github&logoColor=white)](https://github.com/Yugenjr)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-YugendraN-0077B5?style=flat&logo=linkedin&logoColor=white)](https://linkedin.com/in/yugendran)

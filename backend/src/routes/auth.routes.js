@@ -4,6 +4,7 @@ import { validateEmail, validatePassword } from '../middlewares/validation.middl
 import { protect } from '../middlewares/auth.middleware.js';
 import { loginLimiter } from '../middlewares/rateLimiter.middleware.js';
 import { body } from 'express-validator';
+import passport from 'passport';
 
 const router = express.Router();
 
