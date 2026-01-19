@@ -10,6 +10,8 @@ import { sanitizeInput } from './middlewares/validation.middleware.js';
 import { generalLimiter } from './middlewares/rateLimiter.middleware.js';
 import { correlationId } from './middlewares/correlationId.middleware.js';
 import { performanceMetrics } from './middlewares/performance.middleware.js';
+import { distributedRateLimit, botDetection, geoSecurityCheck, securityAudit, abuseDetection } from './middlewares/advancedSecurity.middleware.js';
+import { autoRefresh } from './middlewares/jwtManager.middleware.js';
 import DistributedSessionManager from './utils/distributedSessionManager.js';
 import WebSocketManager from './utils/websocketManager.js';
 import BatchProcessingService from './services/batchProcessing.service.js';
@@ -20,6 +22,7 @@ import authRoutes from './routes/auth.routes.js';
 import cacheRoutes from './routes/cache.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
+import securityRoutes from './routes/security.routes.js';
 
 // Import constants
 import { HTTP_STATUS, ENVIRONMENTS } from './constants/app.constants.js';
@@ -50,6 +53,14 @@ app.use(DistributedSessionManager.middleware());
 app.use(securityHeaders);
 app.use(requestLogger);
 app.use(securityMonitor);
+
+// Advanced security middleware
+app.use(distributedRateLimit);
+app.use(botDetection);
+app.use(geoSecurityCheck);
+app.use(securityAudit);
+app.use(abuseDetection);
+app.use(autoRefresh);
 
 // Distributed rate limiting
 app.use(generalLimiter);
@@ -85,6 +96,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cache', cacheRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/security', securityRoutes);
 
 // API documentation endpoint
 app.get('/api', (req, res) => {
