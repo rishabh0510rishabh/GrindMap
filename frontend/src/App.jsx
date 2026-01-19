@@ -47,7 +47,6 @@ function AppContent() {
   return (
     <div className="app">
       <div className="container">
-
         {showDemo ? (
           <>
             <DemoPage onBack={() => setShowDemo(false)} />
@@ -95,13 +94,17 @@ function AppContent() {
                 gap: "1rem",
                 alignItems: "center",
                 justifyContent: "space-evenly",
-                padding: "0.5rem 1rem"
+                padding: "0.5rem 1rem",
               }}
             >
               <button
                 onClick={() => setShowDemo(true)}
-                onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.2)")}
-                onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background = "rgba(255,255,255,0.2)")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = "transparent")
+                }
                 style={btnStyle}
               >
                 View Demo
@@ -109,8 +112,12 @@ function AppContent() {
 
               <button
                 onClick={() => setShowAnalytics(true)}
-                onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.2)")}
-                onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background = "rgba(255,255,255,0.2)")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = "transparent")
+                }
                 style={btnStyle}
               >
                 View Analytics
@@ -118,8 +125,12 @@ function AppContent() {
 
               <button
                 onClick={() => setShowBadges(true)}
-                onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.2)")}
-                onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background = "rgba(255,255,255,0.2)")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = "transparent")
+                }
                 style={btnStyle}
               >
                 🏆 Achievements
@@ -127,23 +138,25 @@ function AppContent() {
 
               <button
                 onClick={() => setShowGoals(true)}
-                onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.2)")}
-                onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background = "rgba(255,255,255,0.2)")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = "transparent")
+                }
                 style={btnStyle}
               >
                 🎯 Goals
               </button>
               <button
                 onClick={() => setShowContributors(true)}
-                style={{
-                  padding: "10px 20px",
-                  fontSize: "1em",
-                  background: "#3b82f6",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                }}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background = "rgba(255,255,255,0.2)")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = "transparent")
+                }
+                style={btnStyle}
               >
                 👥 Contributors
               </button>
@@ -162,7 +175,11 @@ function AppContent() {
 
             <div className="overall">
               <h2>Overall Progress</h2>
-              <CircularProgress solved={totalSolved} goal={OVERALL_GOAL} color="#4caf50" />
+              <CircularProgress
+                solved={totalSolved}
+                goal={OVERALL_GOAL}
+                color="#4caf50"
+              />
               <p>
                 {totalSolved} / {OVERALL_GOAL} problems solved
               </p>
