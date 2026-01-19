@@ -1,234 +1,305 @@
 import { WebSocketServer } from 'ws';
-import jwt from 'jsonwebtoken';
+import { WebSocketAuth } from './websocketAuth.js';
+import MessageQueue from './messageQueue.js';
 import Logger from './logger.js';
 
 class WebSocketManager {
   constructor() {
     this.wss = null;
     this.clients = new Map(); // userId -> Set of WebSocket connections
+    this.rooms = new Map(); // roomId -> Set of userIds
+    this.userRooms = new Map(); // userId -> Set of roomIds
+    this.heartbeatInterval = null;
   }
 
-  /**
-   * Initialize WebSocket server
-   */
   initialize(server) {
     this.wss = new WebSocketServer({ 
       server,
-      path: '/ws'
+      path: '/ws',
+      verifyClient: this.verifyClient.bind(this)
     });
 
-    this.wss.on('connection', (ws, req) => {
-      this.handleConnection(ws, req);
-    });
-
-    Logger.info('WebSocket server initialized');
-  }
-
-  /**
-   * Handle new WebSocket connection
-   */
-  handleConnection(ws, req) {
-    const correlationId = req.headers['x-correlation-id'];
+    this.wss.on('connection', this.handleConnection.bind(this));
+    this.startHeartbeat();
     
-    ws.on('message', (data) => {
-      try {
-        const message = JSON.parse(data);
-        this.handleMessage(ws, message, correlationId);
-      } catch (error) {
-        ws.send(JSON.stringify({ 
-          type: 'error', 
-          message: 'Invalid JSON' 
-        }));
-      }
-    });
-
-    ws.on('close', () => {
-      this.handleDisconnection(ws);
-    });
-
-    ws.on('error', (error) => {
-      Logger.error('WebSocket error', { error: error.message, correlationId });
-    });
+    Logger.info('WebSocket server initialized with authentication');
   }
 
-  /**
-   * Handle WebSocket messages
-   */
-  handleMessage(ws, message, correlationId) {
-    const { type, token, data } = message;
-
-    switch (type) {
-      case 'auth':
-        this.authenticateClient(ws, token, correlationId);
-        break;
-      case 'subscribe':
-        this.subscribeToUpdates(ws, data, correlationId);
-        break;
-      case 'subscribe_notifications':
-        this.subscribeToNotifications(ws, correlationId);
-        break;
-      case 'ping':
-        ws.send(JSON.stringify({ type: 'pong' }));
-        break;
-      default:
-        ws.send(JSON.stringify({ 
-          type: 'error', 
-          message: 'Unknown message type' 
-        }));
+  verifyClient(info) {
+    const auth = WebSocketAuth.authenticate(info.req);
+    if (!auth.authenticated) {
+      Logger.warn('WebSocket connection rejected', { error: auth.error });
+      return false;
     }
+    
+    info.req.user = auth;
+    return true;
   }
 
-  /**
-   * Authenticate WebSocket client
-   */
-  authenticateClient(ws, token, correlationId) {
+  async handleConnection(ws, request) {
+    const user = request.user;
+    const userId = user.userId;
+    
+    if (!this.clients.has(userId)) {
+      this.clients.set(userId, new Set());
+    }
+    this.clients.get(userId).add(ws);
+    
+    ws.userId = userId;
+    ws.isAlive = true;
+    ws.joinedRooms = new Set();
+    
+    Logger.info('WebSocket client connected', { userId, email: user.email });
+    
+    await this.deliverQueuedMessages(userId, ws);
+    
+    ws.on('message', (data) => this.handleMessage(ws, data));
+    ws.on('close', () => this.handleDisconnection(ws));
+    ws.on('pong', () => { ws.isAlive = true; });
+    
+    this.sendToUser(userId, {
+      type: 'connected',
+      message: 'WebSocket connected successfully',
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  async deliverQueuedMessages(userId, ws) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      ws.userId = decoded.id;
-      ws.authenticated = true;
-
-      // Add to clients map
-      if (!this.clients.has(decoded.id)) {
-        this.clients.set(decoded.id, new Set());
+      const queuedMessages = await MessageQueue.getQueuedMessages(userId);
+      
+      for (const msg of queuedMessages) {
+        ws.send(JSON.stringify({
+          type: 'queued_message',
+          ...msg.message
+        }));
+        
+        await MessageQueue.markDelivered(userId, msg.id);
       }
-      this.clients.get(decoded.id).add(ws);
-
-      ws.send(JSON.stringify({ 
-        type: 'auth_success',
-        message: 'Authenticated successfully' 
-      }));
-
-      Logger.info('WebSocket client authenticated', { 
-        userId: decoded.id, 
-        correlationId 
-      });
+      
+      if (queuedMessages.length > 0) {
+        Logger.info('Delivered queued messages', { userId, count: queuedMessages.length });
+      }
     } catch (error) {
-      ws.send(JSON.stringify({ 
-        type: 'auth_error', 
-        message: 'Invalid token' 
-      }));
+      Logger.error('Failed to deliver queued messages', { userId, error: error.message });
     }
   }
 
-  /**
-   * Subscribe client to platform updates
-   */
-  subscribeToUpdates(ws, data, correlationId) {
-    if (!ws.authenticated) {
-      ws.send(JSON.stringify({ 
-        type: 'error', 
-        message: 'Not authenticated' 
-      }));
+  handleMessage(ws, data) {
+    try {
+      const message = JSON.parse(data);
+      const userId = ws.userId;
+      
+      switch (message.type) {
+        case 'join_room':
+          this.joinRoom(userId, message.roomId, ws);
+          break;
+        case 'leave_room':
+          this.leaveRoom(userId, message.roomId, ws);
+          break;
+        case 'room_message':
+          this.handleRoomMessage(userId, message);
+          break;
+        case 'private_message':
+          this.handlePrivateMessage(userId, message);
+          break;
+        case 'ping':
+          ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
+          break;
+        default:
+          Logger.warn('Unknown message type', { type: message.type, userId });
+      }
+    } catch (error) {
+      Logger.error('WebSocket message handling failed', { error: error.message });
+      ws.send(JSON.stringify({ type: 'error', message: 'Invalid message format' }));
+    }
+  }
+
+  joinRoom(userId, roomId, ws) {
+    if (!this.rooms.has(roomId)) {
+      this.rooms.set(roomId, new Set());
+    }
+    this.rooms.get(roomId).add(userId);
+    
+    if (!this.userRooms.has(userId)) {
+      this.userRooms.set(userId, new Set());
+    }
+    this.userRooms.get(userId).add(roomId);
+    
+    ws.joinedRooms.add(roomId);
+    
+    Logger.info('User joined room', { userId, roomId });
+    
+    ws.send(JSON.stringify({
+      type: 'room_joined',
+      roomId,
+      message: `Joined room ${roomId}`,
+      timestamp: new Date().toISOString()
+    }));
+    
+    this.broadcastToRoom(roomId, {
+      type: 'user_joined',
+      userId,
+      roomId,
+      timestamp: new Date().toISOString()
+    }, userId);
+  }
+
+  leaveRoom(userId, roomId, ws) {
+    if (this.rooms.has(roomId)) {
+      this.rooms.get(roomId).delete(userId);
+      if (this.rooms.get(roomId).size === 0) {
+        this.rooms.delete(roomId);
+      }
+    }
+    
+    if (this.userRooms.has(userId)) {
+      this.userRooms.get(userId).delete(roomId);
+    }
+    
+    ws.joinedRooms.delete(roomId);
+    
+    Logger.info('User left room', { userId, roomId });
+    
+    ws.send(JSON.stringify({
+      type: 'room_left',
+      roomId,
+      message: `Left room ${roomId}`,
+      timestamp: new Date().toISOString()
+    }));
+    
+    this.broadcastToRoom(roomId, {
+      type: 'user_left',
+      userId,
+      roomId,
+      timestamp: new Date().toISOString()
+    }, userId);
+  }
+
+  async handleRoomMessage(userId, message) {
+    const { roomId, content } = message;
+    
+    if (!this.rooms.has(roomId) || !this.rooms.get(roomId).has(userId)) {
+      Logger.warn('User not in room', { userId, roomId });
       return;
     }
-
-    const { platforms, username } = data;
-    ws.subscriptions = { platforms, username };
-
-    ws.send(JSON.stringify({ 
-      type: 'subscription_success',
-      message: `Subscribed to ${platforms.join(', ')} for ${username}` 
-    }));
-
-    Logger.info('Client subscribed to updates', { 
-      userId: ws.userId, 
-      platforms, 
-      username, 
-      correlationId 
-    });
+    
+    const roomMessage = {
+      type: 'room_message',
+      roomId,
+      userId,
+      content,
+      timestamp: new Date().toISOString()
+    };
+    
+    await MessageQueue.persistMessage(roomId, roomMessage);
+    this.broadcastToRoom(roomId, roomMessage);
+    
+    Logger.info('Room message sent', { userId, roomId });
   }
 
-  /**
-   * Handle client disconnection
-   */
-  handleDisconnection(ws) {
-    if (ws.userId && this.clients.has(ws.userId)) {
-      this.clients.get(ws.userId).delete(ws);
-      if (this.clients.get(ws.userId).size === 0) {
-        this.clients.delete(ws.userId);
-      }
+  async handlePrivateMessage(senderId, message) {
+    const { targetUserId, content } = message;
+    
+    const privateMessage = {
+      type: 'private_message',
+      senderId,
+      content,
+      timestamp: new Date().toISOString()
+    };
+    
+    const delivered = this.sendToUser(targetUserId, privateMessage);
+    
+    if (!delivered) {
+      await MessageQueue.queueMessage(targetUserId, privateMessage);
+      Logger.info('Private message queued', { senderId, targetUserId });
+    } else {
+      Logger.info('Private message delivered', { senderId, targetUserId });
     }
   }
 
-  /**
-   * Broadcast platform data update to subscribed clients
-   */
+  sendToUser(userId, message) {
+    const userConnections = this.clients.get(userId);
+    if (!userConnections || userConnections.size === 0) {
+      return false;
+    }
+    
+    const messageStr = JSON.stringify(message);
+    let delivered = false;
+    
+    userConnections.forEach(ws => {
+      if (ws.readyState === ws.OPEN) {
+        ws.send(messageStr);
+        delivered = true;
+      }
+    });
+    
+    return delivered;
+  }
+
+  broadcastToRoom(roomId, message, excludeUserId = null) {
+    const roomUsers = this.rooms.get(roomId);
+    if (!roomUsers) return;
+    
+    roomUsers.forEach(userId => {
+      if (userId !== excludeUserId) {
+        this.sendToUser(userId, message);
+      }
+    });
+  }
+
+  handleDisconnection(ws) {
+    const userId = ws.userId;
+    
+    if (this.clients.has(userId)) {
+      this.clients.get(userId).delete(ws);
+      if (this.clients.get(userId).size === 0) {
+        this.clients.delete(userId);
+      }
+    }
+    
+    ws.joinedRooms.forEach(roomId => {
+      this.leaveRoom(userId, roomId, ws);
+    });
+    
+    Logger.info('WebSocket client disconnected', { userId });
+  }
+
+  startHeartbeat() {
+    this.heartbeatInterval = setInterval(() => {
+      this.wss.clients.forEach(ws => {
+        if (!ws.isAlive) {
+          ws.terminate();
+          return;
+        }
+        
+        ws.isAlive = false;
+        ws.ping();
+      });
+    }, 30000);
+  }
+
+  getClientsCount() {
+    return this.wss ? this.wss.clients.size : 0;
+  }
+
+  // Legacy compatibility
   broadcastPlatformUpdate(platform, username, data) {
-    const message = JSON.stringify({
+    this.broadcastToRoom('platform_updates', {
       type: 'platform_update',
       platform,
       username,
       data,
       timestamp: new Date().toISOString()
     });
-
-    for (const [userId, connections] of this.clients) {
-      for (const ws of connections) {
-        if (ws.subscriptions && 
-            ws.subscriptions.platforms.includes(platform) &&
-            ws.subscriptions.username === username) {
-          ws.send(message);
-        }
-      }
-    }
-
-    Logger.info('Platform update broadcasted', { platform, username });
   }
 
-  /**
-   * Subscribe client to notifications
-   */
-  subscribeToNotifications(ws, correlationId) {
-    if (!ws.authenticated) {
-      ws.send(JSON.stringify({ 
-        type: 'error', 
-        message: 'Not authenticated' 
-      }));
-      return;
-    }
-
-    ws.notificationsEnabled = true;
-
-    ws.send(JSON.stringify({ 
-      type: 'notification_subscription_success',
-      message: 'Subscribed to notifications' 
-    }));
-
-    Logger.info('Client subscribed to notifications', { 
-      userId: ws.userId, 
-      correlationId 
-    });
-  }
-
-  /**
-   * Send notification to specific user
-   */
   sendNotificationToUser(userId, notification) {
-    const connections = this.clients.get(userId);
-    if (connections) {
-      const message = JSON.stringify({
-        type: 'notification',
-        ...notification,
-        timestamp: new Date().toISOString()
-      });
-      
-      for (const ws of connections) {
-        if (ws.notificationsEnabled) {
-          ws.send(message);
-        }
-      }
-    }
-  }
-
-  /**
-   * Get connected clients count
-   */
-  getClientsCount() {
-    let total = 0;
-    for (const connections of this.clients.values()) {
-      total += connections.size;
-    }
-    return total;
+    this.sendToUser(userId, {
+      type: 'notification',
+      ...notification,
+      timestamp: new Date().toISOString()
+    });
   }
 }
 

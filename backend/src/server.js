@@ -27,6 +27,7 @@ import notificationRoutes from './routes/notification.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
 import securityRoutes from './routes/security.routes.js';
 import databaseRoutes from './routes/database.routes.js';
+import websocketRoutes from './routes/websocket.routes.js';
 
 // Import secure logger to prevent JWT exposure
 import './utils/secureLogger.js';
@@ -124,6 +125,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/security', securityRoutes);
 app.use('/api/database', databaseRoutes);
+app.use('/api/websocket', websocketRoutes);
 
 // API documentation endpoint
 app.get('/api', (req, res) => {
@@ -138,6 +140,7 @@ app.get('/api', (req, res) => {
       notifications: '/api/notifications',
       analytics: '/api/analytics',
       websocket: '/ws',
+      websocketAPI: '/api/websocket',
       health: '/health',
       database: '/api/database'
     },
