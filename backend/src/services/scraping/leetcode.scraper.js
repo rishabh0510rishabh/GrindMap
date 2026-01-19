@@ -2,6 +2,7 @@ import ApiClient from '../../utils/apiClient.js';
 import InputValidator from '../../utils/inputValidator.js';
 import ScraperErrorHandler from '../../utils/scraperErrorHandler.js';
 import Logger from '../../utils/logger.js';
+import RequestManager from '../../utils/requestManager.js';
 
 // Create LeetCode API client with circuit breaker
 const leetcodeClient = ApiClient.createLeetCodeClient();
@@ -16,9 +17,13 @@ export async function scrapeLeetCode(username) {
     
     Logger.debug(`Starting LeetCode scrape for user: ${validatedUsername}`);
     
-    const response = await leetcodeClient.get(`https://leetcode-stats.tashif.codes/${validatedUsername}`, {
-      cacheTTL: 300, // 5 minutes cache
-      cacheKey: `leetcode:${validatedUsername}`
+    const response = await RequestManager.makeRequest({
+      method: 'GET',
+      url: `https://leetcode-stats.tashif.codes/${validatedUsername}`,
+      timeout: 8000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
     });
     
     // Validate API response

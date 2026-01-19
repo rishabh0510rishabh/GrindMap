@@ -5,6 +5,7 @@ import InputValidator from '../../utils/inputValidator.js';
 import ScraperErrorHandler from '../../utils/scraperErrorHandler.js';
 import Logger from '../../utils/logger.js';
 import redis from '../../config/redis.js';
+import PuppeteerManager from '../../utils/puppeteerManager.js';
 
 // Create circuit breaker for CodeChef scraping
 const codechefCircuitBreaker = new CircuitBreaker({
@@ -58,12 +59,12 @@ export async function fetchCodeChefStats(username) {
       let browser;
       
       try {
-        browser = await puppeteerPool.getBrowser();
-        page = await puppeteerPool.createPage(browser);
+        browser = await PuppeteerManager.createBrowser();
+        page = await PuppeteerManager.createPage(browser);
         
         await page.goto(`https://www.codechef.com/users/${validatedUsername}`, {
           waitUntil: 'networkidle2',
-          timeout: 20000
+          timeout: 15000
         });
         
         // Check if user exists
@@ -86,7 +87,7 @@ export async function fetchCodeChefStats(username) {
             };
           }),
           new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Page evaluation timeout')), 15000)
+            setTimeout(() => reject(new Error('Page evaluation timeout')), 10000)
           )
         ]);
         
@@ -98,7 +99,10 @@ export async function fetchCodeChefStats(username) {
         return InputValidator.sanitizeResponse(stats);
       } finally {
         if (page) {
-          await puppeteerPool.closePage(page);
+          await PuppeteerManager.closePage(page);
+        }
+        if (browser) {
+          await PuppeteerManager.closeBrowser(browser);
         }
       }
     };

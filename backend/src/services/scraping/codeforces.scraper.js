@@ -2,6 +2,7 @@ import ApiClient from '../../utils/apiClient.js';
 import InputValidator from '../../utils/inputValidator.js';
 import ScraperErrorHandler from '../../utils/scraperErrorHandler.js';
 import Logger from '../../utils/logger.js';
+import RequestManager from '../../utils/requestManager.js';
 
 // Create CodeForces API client with circuit breaker
 const codeforcesClient = ApiClient.createCodeForcesClient();
@@ -16,9 +17,13 @@ export async function fetchCodeforcesStats(username) {
     
     Logger.debug(`Starting Codeforces scrape for user: ${validatedUsername}`);
     
-    const response = await codeforcesClient.get(`/api/user.info?handles=${validatedUsername}`, {
-      cacheTTL: 600, // 10 minutes cache
-      cacheKey: `codeforces:${validatedUsername}`
+    const response = await RequestManager.makeRequest({
+      method: 'GET',
+      url: `https://codeforces.com/api/user.info?handles=${validatedUsername}`,
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
     });
     
     // Validate Codeforces API response format
