@@ -10,16 +10,16 @@ class CircuitBreaker {
     this.failureCount = 0;
     this.lastFailureTime = null;
     this.successCount = 0;
+    this.name = options.name || 'CircuitBreaker';
   }
 
   async execute(operation) {
     if (this.state === 'OPEN') {
-      if (Date.now() - this.lastFailureTime >= this.resetTimeout) {
+      if (this.shouldAttemptReset()) {
         this.state = 'HALF_OPEN';
-        this.successCount = 0;
-        Logger.info('Circuit breaker transitioning to HALF_OPEN');
+        Logger.info(`Circuit breaker ${this.name} attempting reset`);
       } else {
-        throw new Error('Circuit breaker is OPEN - operation rejected');
+        throw new Error(`Circuit breaker ${this.name} is OPEN`);
       }
     }
 
@@ -40,7 +40,8 @@ class CircuitBreaker {
       this.successCount++;
       if (this.successCount >= 3) {
         this.state = 'CLOSED';
-        Logger.info('Circuit breaker CLOSED - service recovered');
+        this.successCount = 0;
+        Logger.info(`Circuit breaker ${this.name} reset to CLOSED`);
       }
     }
   }
@@ -51,11 +52,12 @@ class CircuitBreaker {
     
     if (this.failureCount >= this.failureThreshold) {
       this.state = 'OPEN';
-      Logger.error('Circuit breaker OPEN - service failing', {
-        failureCount: this.failureCount,
-        threshold: this.failureThreshold
-      });
+      Logger.warn(`Circuit breaker ${this.name} opened after ${this.failureCount} failures`);
     }
+  }
+
+  shouldAttemptReset() {
+    return Date.now() - this.lastFailureTime >= this.resetTimeout;
   }
 
   getState() {

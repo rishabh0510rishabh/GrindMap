@@ -1,20 +1,25 @@
 import React, { useState } from "react";
 import "./App.css";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import CircularProgress from "./components/CircularProgress";
-
 import DemoPage from "./components/DemoPage";
 import AnalyticsDashboard from "./components/AnalyticsDashboard";
 import BadgeCollection from "./components/BadgeCollection";
 import UsernameInputs from "./components/UsernameInputs";
 import PlatformCard from "./components/PlatformCard";
+import UserProfile from "./components/UserProfile";
+import AuthModal from "./components/AuthModal";
 import { useGrindMapData } from "./hooks/useGrindMapData";
 import { PLATFORMS, OVERALL_GOAL } from "./utils/platforms";
 
-function App() {
+function AppContent() {
   const [showDemo, setShowDemo] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showBadges, setShowBadges] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [expanded, setExpanded] = useState(null);
+
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   const {
     usernames,
@@ -31,8 +36,17 @@ function App() {
     setExpanded(expanded === key ? null : key);
   };
 
-  // Today's Activity Logic
   const today = new Date();
+
+  if (authLoading) {
+    return (
+      <div className="app">
+        <div style={{ textAlign: 'center', padding: '50px' }}>
+          <h2>Loading...</h2>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app">
@@ -56,6 +70,21 @@ function App() {
         </>
       ) : (
         <>
+          {/* Header with Auth */}
+          <div className="app-header">
+            <h1>GrindMap</h1>
+            {isAuthenticated ? (
+              <UserProfile />
+            ) : (
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="auth-trigger-btn"
+              >
+                Sign In
+              </button>
+            )}
+          </div>
+
           <div style={{ textAlign: "center", marginBottom: "20px" }}>
             <button
               onClick={() => setShowDemo(true)}
@@ -102,7 +131,6 @@ function App() {
               🏆 Achievements
             </button>
           </div>
-          <h1>GrindMap</h1>
 
           <UsernameInputs
             usernames={usernames}
@@ -173,7 +201,20 @@ function App() {
           </div>
         </>
       )}
+      
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+      />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

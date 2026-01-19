@@ -1,11 +1,16 @@
-import axios from "axios";
+import ApiClient from '../../utils/apiClient.js';
+
+// Create GitHub API client with circuit breaker
+const githubClient = ApiClient.createGitHubClient();
 
 export async function scrapeGitHub(username) {
   try {
-    // Fetch public events
-    const res = await axios.get(`https://api.github.com/users/${username}/events/public`);
-    const events = res.data;
-
+    const response = await githubClient.get(`/users/${username}/events/public`, {
+      cacheTTL: 300, // 5 minutes cache
+      cacheKey: `github:${username}`
+    });
+    
+    const events = response.data;
     const today = new Date();
 
     // Count events in the last 7 days (simple activity metric)
@@ -23,7 +28,9 @@ export async function scrapeGitHub(username) {
         recentActivityCount: recentActivity.length,
         message: "retrieved",
         status: "success"
-      }
+      },
+      fromCache: response.fromCache,
+      fromFallback: response.fromFallback
     };
   } catch (err) {
     return {

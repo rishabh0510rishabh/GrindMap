@@ -30,33 +30,34 @@ class PlatformService {
     const cacheKey = `platform:${PLATFORMS.LEETCODE}:${username}`;
     
     try {
-      // Use advanced cache manager
-      const cached = await AdvancedCacheManager.get(cacheKey);
+      const cached = await redis.get(cacheKey);
       if (cached) {
-        return { ...cached, fromCache: true };
+        const data = JSON.parse(cached);
+        return { ...data, fromCache: true };
       }
     } catch (cacheError) {
       console.warn('Cache read failed for LeetCode:', cacheError.message);
     }
 
     try {
-      const data = await scrapeLeetCode(username);
+      const scraperResult = await scrapeLeetCode(username);
       const result = {
         platform: PLATFORMS.LEETCODE,
         username,
-        ...data,
+        ...scraperResult.data,
+        fromCache: scraperResult.fromCache,
+        fromFallback: scraperResult.fromFallback
       };
       
-      // Cache with advanced manager and tags
-      try {
-        await AdvancedCacheManager.set(cacheKey, result, config.CACHE_PLATFORM_TTL, {
-          tags: ['platform', 'leetcode', username]
-        });
-      } catch (cacheError) {
-        console.warn('Cache write failed for LeetCode:', cacheError.message);
+      // Only cache if not from fallback
+      if (!scraperResult.fromFallback) {
+        try {
+          await redis.set(cacheKey, JSON.stringify(result), config.CACHE_PLATFORM_TTL);
+        } catch (cacheError) {
+          console.warn('Cache write failed for LeetCode:', cacheError.message);
+        }
       }
       
-      // Emit real-time update
       if (userId) {
         try {
           DataChangeEmitter.emitPlatformUpdate(PLATFORMS.LEETCODE, username, result, userId);
