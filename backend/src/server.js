@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import connectDB from './config/db.js';
+import dbManager from './utils/databaseManager.js';
 import { corsOptions } from './config/cors.js';
 import { errorHandler, notFound } from './middlewares/error.middleware.js';
 import { securityHeaders } from './middlewares/security.middleware.js';
@@ -25,6 +26,7 @@ import cacheRoutes from './routes/cache.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
 import securityRoutes from './routes/security.routes.js';
+import databaseRoutes from './routes/database.routes.js';
 
 // Import secure logger to prevent JWT exposure
 import './utils/secureLogger.js';
@@ -85,18 +87,33 @@ app.use(express.urlencoded({ extended: true }));
 app.use(sanitizeInput);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
   Logger.info('Health check accessed', { correlationId: req.correlationId });
   
-  res.status(HTTP_STATUS.OK).json({
-    success: true,
-    message: 'Server is healthy',
-    timestamp: new Date().toISOString(),
-    environment: NODE_ENV,
-    correlationId: req.correlationId,
-    sessionActive: !!req.session,
-    websocketClients: WebSocketManager.getClientsCount()
-  });
+  try {
+    const dbHealth = await dbManager.healthCheck();
+    const dbStats = dbManager.getConnectionStats();
+    
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Server is healthy',
+      timestamp: new Date().toISOString(),
+      environment: NODE_ENV,
+      correlationId: req.correlationId,
+      sessionActive: !!req.session,
+      websocketClients: WebSocketManager.getClientsCount(),
+      database: dbHealth,
+      connectionStats: dbStats
+    });
+  } catch (error) {
+    Logger.error('Health check failed', { error: error.message });
+    res.status(503).json({
+      success: false,
+      message: 'Server unhealthy',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // API routes
@@ -106,6 +123,7 @@ app.use('/api/cache', cacheRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/security', securityRoutes);
+app.use('/api/database', databaseRoutes);
 
 // API documentation endpoint
 app.get('/api', (req, res) => {
@@ -121,6 +139,7 @@ app.get('/api', (req, res) => {
       analytics: '/api/analytics',
       websocket: '/ws',
       health: '/health',
+      database: '/api/database'
     },
     correlationId: req.correlationId
   });

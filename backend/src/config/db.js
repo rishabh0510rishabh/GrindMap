@@ -1,11 +1,13 @@
 import mongoose from 'mongoose';
+import Logger from '../utils/logger.js';
+import dbManager from '../utils/databaseManager.js';
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/grindmap');
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    await dbManager.connect();
+    console.log('✅ MongoDB Connected:', mongoose.connection.host);
   } catch (error) {
-    console.error('❌ Database connection failed:', error.message);
+    Logger.error('Database connection failed', { error: error.message });
     process.exit(1);
   }
 };
