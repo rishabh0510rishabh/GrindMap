@@ -31,6 +31,7 @@ import analyticsRoutes from './routes/analytics.routes.js';
 import securityRoutes from './routes/security.routes.js';
 import databaseRoutes from './routes/database.routes.js';
 import websocketRoutes from './routes/websocket.routes.js';
+import quotaRoutes from './routes/quota.routes.js';
 
 // Import secure logger to prevent JWT exposure
 import './utils/secureLogger.js';
@@ -137,6 +138,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/security', securityRoutes);
 app.use('/api/database', databaseRoutes);
 app.use('/api/websocket', websocketRoutes);
+app.use('/api/quota', quotaRoutes);
 
 // API documentation endpoint
 app.get('/api', (req, res) => {
@@ -153,6 +155,7 @@ app.get('/api', (req, res) => {
       analytics: '/api/analytics',
       websocket: '/ws',
       websocketAPI: '/api/websocket',
+      quota: '/api/quota',
       health: '/health',
       database: '/api/database'
     },

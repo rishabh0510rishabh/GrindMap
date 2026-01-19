@@ -152,7 +152,7 @@ class DatabaseManager {
         circuitBreakerState: this.circuitBreaker.getState()
       };
 
-      Logger.debug('Database health check passed', stats);
+      Logger.info('Database health check passed', stats);
       return stats;
     } catch (error) {
       Logger.warn('Database health check failed', { error: error.message });

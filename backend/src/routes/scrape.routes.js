@@ -5,6 +5,7 @@ import { validateUsername as validateUsernameInput, sanitizeUsername } from '../
 import { scrapingLimiter } from '../middlewares/rateLimiter.middleware.js';
 import { platformCache, userCache } from '../middlewares/cache.middleware.js';
 import { auditLogger } from '../middlewares/audit.middleware.js';
+import { enforceScrapingQuota } from '../middlewares/quota.middleware.js';
 
 const router = express.Router();
 
@@ -20,6 +21,7 @@ router.get(
   '/leetcode/:username',
   scrapingLimiter,
   validateUsername,
+  enforceScrapingQuota,
   auditLogger('FETCH_LEETCODE_STATS'),
   platformCache,
   ScrapeController.getLeetCodeStats
