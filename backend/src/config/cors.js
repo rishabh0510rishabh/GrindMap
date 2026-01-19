@@ -18,12 +18,13 @@ const corsOptions = {
     if (!origin || allowed.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      console.warn('CORS blocked origin:', origin);
+      callback(new Error(`CORS policy violation: ${origin} not allowed`));
     }
   },
-  credentials: false,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   maxAge: 86400
 };
 

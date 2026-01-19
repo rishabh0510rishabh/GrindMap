@@ -5,6 +5,7 @@ import connectDB from './config/db.js';
 import { corsOptions } from './config/cors.js';
 import { errorHandler, notFound } from './middlewares/error.middleware.js';
 import { securityHeaders } from './middlewares/security.middleware.js';
+import { enhancedSecurityHeaders } from './middlewares/enhancedSecurity.middleware.js';
 import { requestLogger, securityMonitor } from './middlewares/logging.middleware.js';
 import { sanitizeInput } from './middlewares/validation.middleware.js';
 import { generalLimiter } from './middlewares/rateLimiter.middleware.js';
@@ -24,6 +25,9 @@ import cacheRoutes from './routes/cache.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
 import securityRoutes from './routes/security.routes.js';
+
+// Import secure logger to prevent JWT exposure
+import './utils/secureLogger.js';
 
 // Import constants
 import { HTTP_STATUS, ENVIRONMENTS } from './constants/app.constants.js';
@@ -53,7 +57,8 @@ app.use(performanceMetrics);
 // Distributed session management
 app.use(DistributedSessionManager.middleware());
 
-// Security middleware
+// Enhanced security middleware
+app.use(enhancedSecurityHeaders);
 app.use(securityHeaders);
 app.use(requestLogger);
 app.use(securityMonitor);
