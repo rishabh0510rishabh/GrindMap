@@ -4,6 +4,7 @@ import { validateEmail, validatePassword } from '../middlewares/validation.middl
 import { protect } from '../middlewares/auth.middleware.js';
 import { loginLimiter } from '../middlewares/rateLimiter.middleware.js';
 import { body } from 'express-validator';
+import passport from 'passport';
 
 const router = express.Router();
 
@@ -51,5 +52,28 @@ router.post('/logout', protect, AuthController.logoutUser);
  * @access  Private
  */
 router.get('/profile', protect, AuthController.getUserProfile);
+
+/**
+ * @route   PUT /api/auth/profile
+ * @desc    Update user profile
+ * @access  Private
+ */
+router.put(
+  '/profile',
+  protect,
+  [
+    body('name')
+      .optional()
+      .trim()
+      .isLength({ min: 2, max: 50 })
+      .withMessage('Name must be 2-50 characters long'),
+    body('bio')
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage('Bio cannot exceed 500 characters')
+  ],
+  AuthController.updateProfile
+);
 
 export default router;

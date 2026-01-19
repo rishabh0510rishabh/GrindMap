@@ -11,6 +11,7 @@ import { AppError, ERROR_CODES } from '../utils/appError.js';
 import redis from '../config/redis.js';
 import config from '../config/env.js';
 import DataChangeEmitter from '../utils/dataChangeEmitter.js';
+import NotificationService from './notification.service.js';
 
 /**
  * Platform scraping service - handles all platform data fetching
@@ -27,11 +28,15 @@ class PlatformService {
   async fetchLeetCodeData(username, userId = null) {
     const cacheKey = `platform:${PLATFORMS.LEETCODE}:${username}`;
     
-    // Try cache first
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      const data = JSON.parse(cached);
-      return { ...data, fromCache: true };
+    try {
+      // Try cache first
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        const data = JSON.parse(cached);
+        return { ...data, fromCache: true };
+      }
+    } catch (cacheError) {
+      console.warn('Cache read failed for LeetCode:', cacheError.message);
     }
 
     try {
@@ -43,17 +48,25 @@ class PlatformService {
       };
       
       // Cache for configured TTL (15 minutes)
-      await redis.set(cacheKey, JSON.stringify(result), config.CACHE_PLATFORM_TTL);
+      try {
+        await redis.set(cacheKey, JSON.stringify(result), config.CACHE_PLATFORM_TTL);
+      } catch (cacheError) {
+        console.warn('Cache write failed for LeetCode:', cacheError.message);
+      }
       
       // Emit real-time update
       if (userId) {
-        DataChangeEmitter.emitPlatformUpdate(PLATFORMS.LEETCODE, username, result, userId);
+        try {
+          DataChangeEmitter.emitPlatformUpdate(PLATFORMS.LEETCODE, username, result, userId);
+        } catch (emitError) {
+          console.warn('Real-time update failed for LeetCode:', emitError.message);
+        }
       }
       
       return result;
     } catch (error) {
       throw new AppError(
-        `${MESSAGES.SCRAPING_FAILED}: LeetCode`,
+        `${MESSAGES.SCRAPING_FAILED}: LeetCode - ${error.message}`,
         500,
         ERROR_CODES.SCRAPING_ERROR
       );
@@ -66,11 +79,14 @@ class PlatformService {
   async fetchCodeforcesData(username, userId = null) {
     const cacheKey = `platform:${PLATFORMS.CODEFORCES}:${username}`;
     
-    // Try cache first
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      const data = JSON.parse(cached);
-      return { ...data, fromCache: true };
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        const data = JSON.parse(cached);
+        return { ...data, fromCache: true };
+      }
+    } catch (cacheError) {
+      console.warn('Cache read failed for Codeforces:', cacheError.message);
     }
 
     try {
@@ -83,18 +99,24 @@ class PlatformService {
         ...normalizedData,
       };
       
-      // Cache for configured TTL (15 minutes)
-      await redis.set(cacheKey, JSON.stringify(result), config.CACHE_PLATFORM_TTL);
+      try {
+        await redis.set(cacheKey, JSON.stringify(result), config.CACHE_PLATFORM_TTL);
+      } catch (cacheError) {
+        console.warn('Cache write failed for Codeforces:', cacheError.message);
+      }
       
-      // Emit real-time update
       if (userId) {
-        DataChangeEmitter.emitPlatformUpdate(PLATFORMS.CODEFORCES, username, result, userId);
+        try {
+          DataChangeEmitter.emitPlatformUpdate(PLATFORMS.CODEFORCES, username, result, userId);
+        } catch (emitError) {
+          console.warn('Real-time update failed for Codeforces:', emitError.message);
+        }
       }
       
       return result;
     } catch (error) {
       throw new AppError(
-        `${MESSAGES.SCRAPING_FAILED}: Codeforces`,
+        `${MESSAGES.SCRAPING_FAILED}: Codeforces - ${error.message}`,
         500,
         ERROR_CODES.SCRAPING_ERROR
       );
@@ -107,11 +129,14 @@ class PlatformService {
   async fetchCodeChefData(username, userId = null) {
     const cacheKey = `platform:${PLATFORMS.CODECHEF}:${username}`;
     
-    // Try cache first
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      const data = JSON.parse(cached);
-      return { ...data, fromCache: true };
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        const data = JSON.parse(cached);
+        return { ...data, fromCache: true };
+      }
+    } catch (cacheError) {
+      console.warn('Cache read failed for CodeChef:', cacheError.message);
     }
 
     try {
@@ -124,18 +149,24 @@ class PlatformService {
         ...normalizedData,
       };
       
-      // Cache for configured TTL (15 minutes)
-      await redis.set(cacheKey, JSON.stringify(result), config.CACHE_PLATFORM_TTL);
+      try {
+        await redis.set(cacheKey, JSON.stringify(result), config.CACHE_PLATFORM_TTL);
+      } catch (cacheError) {
+        console.warn('Cache write failed for CodeChef:', cacheError.message);
+      }
       
-      // Emit real-time update
       if (userId) {
-        DataChangeEmitter.emitPlatformUpdate(PLATFORMS.CODECHEF, username, result, userId);
+        try {
+          DataChangeEmitter.emitPlatformUpdate(PLATFORMS.CODECHEF, username, result, userId);
+        } catch (emitError) {
+          console.warn('Real-time update failed for CodeChef:', emitError.message);
+        }
       }
       
       return result;
     } catch (error) {
       throw new AppError(
-        `${MESSAGES.SCRAPING_FAILED}: CodeChef`,
+        `${MESSAGES.SCRAPING_FAILED}: CodeChef - ${error.message}`,
         500,
         ERROR_CODES.SCRAPING_ERROR
       );
@@ -275,6 +306,32 @@ class PlatformService {
    */
   getActivityService() {
     return this.container?.get('activityService');
+  }
+
+  /**
+   * Check for progress and send notifications
+   */
+  async checkProgressAndNotify(userId, platform, newData, cachedData) {
+    if (!cachedData || !newData.data) return;
+
+    const oldCount = cachedData.data?.problemsSolved || cachedData.data?.totalSolved || 0;
+    const newCount = newData.data?.problemsSolved || newData.data?.totalSolved || 0;
+
+    if (newCount > oldCount) {
+      const problemsGained = newCount - oldCount;
+      await NotificationService.createNotification(
+        userId,
+        'friend_progress',
+        `Progress on ${platform}!`,
+        `You solved ${problemsGained} new problem${problemsGained > 1 ? 's' : ''} on ${platform}. Total: ${newCount}`,
+        {
+          platform,
+          problemsGained,
+          totalProblems: newCount,
+          username: newData.username
+        }
+      );
+    }
   }
 }
 

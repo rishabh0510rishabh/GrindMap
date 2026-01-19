@@ -8,16 +8,16 @@ import GoalDashboard from "./components/GoalDashboard";
 import UsernameInputs from "./components/UsernameInputs";
 import PlatformCard from "./components/PlatformCard";
 import ThemeToggle from "./components/ThemeToggle";
+import ContributorsHallOfFame from "./components/ContributorsHallOfFame";
 
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { useGrindMapData } from "./hooks/useGrindMapData";
 import { PLATFORMS, OVERALL_GOAL } from "./utils/platforms";
 import ErrorBoundary from "./components/ErrorBoundary";
 
-
 /* Lazy-loaded analytics dashboard */
-const AnalyticsDashboard = lazy(() =>
-  import("./components/AnalyticsDashboard")
+const AnalyticsDashboard = lazy(
+  () => import("./components/AnalyticsDashboard"),
 );
 
 function AppContent() {
@@ -25,7 +25,9 @@ function AppContent() {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showBadges, setShowBadges] = useState(false);
   const [showGoals, setShowGoals] = useState(false);
+  const [showContributors, setShowContributors] = useState(false);
   const [expanded, setExpanded] = useState(null);
+  const [user, setUser] = useState(null);
 
   const {
     usernames,
@@ -38,6 +40,33 @@ function AppContent() {
     hasSubmittedToday,
   } = useGrindMapData();
 
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    const userName = params.get("name");
+
+    if (token) {
+      localStorage.setItem("authToken", token);
+      if (userName) localStorage.setItem("userName", userName);
+      setUser({ name: userName, token });
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+      const storedToken = localStorage.getItem("authToken");
+      const storedName = localStorage.getItem("userName");
+      if (storedToken) setUser({ name: storedName, token: storedToken });
+    }
+  }, []);
+
+  const handleLogin = () => {
+    window.location.href = "http://localhost:5001/api/auth/github";
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("userName");
+    setUser(null);
+  };
+
   const toggleExpand = (key) => {
     setExpanded(expanded === key ? null : key);
   };
@@ -47,14 +76,16 @@ function AppContent() {
   return (
     <div className="app">
       <div className="container">
-
         {showDemo ? (
           <>
             <DemoPage onBack={() => setShowDemo(false)} />
           </>
         ) : showAnalytics ? (
           <>
-            <button onClick={() => setShowAnalytics(false)} className="back-btn">
+            <button
+              onClick={() => setShowAnalytics(false)}
+              className="back-btn"
+            >
               ← Back to Main
             </button>
             <Suspense fallback={<div>Loading analytics...</div>}>
@@ -75,6 +106,8 @@ function AppContent() {
             </button>
             <GoalDashboard />
           </>
+        ) : showContributors ? (
+          <ContributorsHallOfFame onBack={() => setShowContributors(false)} />
         ) : (
           <>
             {/* Glass Hover Navbar */}
@@ -90,13 +123,57 @@ function AppContent() {
                 gap: "1rem",
                 alignItems: "center",
                 justifyContent: "space-evenly",
-                padding: "0.5rem 1rem"
+                padding: "0.5rem 1rem",
               }}
             >
+              {user ? (
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <span
+                    style={{
+                      marginRight: "10px",
+                      fontWeight: "bold",
+                      color: "#fff",
+                    }}
+                  >
+                    👋 {user.name}
+                  </span>
+                  <button
+                    onClick={handleLogout}
+                    onMouseOver={(e) =>
+                      (e.currentTarget.style.background =
+                        "rgba(231, 76, 60, 0.3)")
+                    }
+                    onMouseOut={(e) =>
+                      (e.currentTarget.style.background = "transparent")
+                    }
+                    style={btnStyle}
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleLogin}
+                  onMouseOver={(e) =>
+                    (e.currentTarget.style.background = "rgba(255,255,255,0.2)")
+                  }
+                  onMouseOut={(e) =>
+                    (e.currentTarget.style.background = "transparent")
+                  }
+                  style={btnStyle}
+                >
+                  🐙 GitHub Login
+                </button>
+              )}
+
               <button
                 onClick={() => setShowDemo(true)}
-                onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.2)")}
-                onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background = "rgba(255,255,255,0.2)")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = "transparent")
+                }
                 style={btnStyle}
               >
                 View Demo
@@ -104,8 +181,12 @@ function AppContent() {
 
               <button
                 onClick={() => setShowAnalytics(true)}
-                onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.2)")}
-                onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background = "rgba(255,255,255,0.2)")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = "transparent")
+                }
                 style={btnStyle}
               >
                 View Analytics
@@ -113,8 +194,12 @@ function AppContent() {
 
               <button
                 onClick={() => setShowBadges(true)}
-                onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.2)")}
-                onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background = "rgba(255,255,255,0.2)")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = "transparent")
+                }
                 style={btnStyle}
               >
                 🏆 Achievements
@@ -122,11 +207,27 @@ function AppContent() {
 
               <button
                 onClick={() => setShowGoals(true)}
-                onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.2)")}
-                onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background = "rgba(255,255,255,0.2)")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = "transparent")
+                }
                 style={btnStyle}
               >
                 🎯 Goals
+              </button>
+              <button
+                onClick={() => setShowContributors(true)}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background = "rgba(255,255,255,0.2)")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = "transparent")
+                }
+                style={btnStyle}
+              >
+                👥 Contributors
               </button>
             </div>
 
@@ -143,7 +244,11 @@ function AppContent() {
 
             <div className="overall">
               <h2>Overall Progress</h2>
-              <CircularProgress solved={totalSolved} goal={OVERALL_GOAL} color="#4caf50" />
+              <CircularProgress
+                solved={totalSolved}
+                goal={OVERALL_GOAL}
+                color="#4caf50"
+              />
               <p>
                 {totalSolved} / {OVERALL_GOAL} problems solved
               </p>
@@ -187,8 +292,8 @@ function AppContent() {
                         submittedToday
                           ? "done"
                           : hasData
-                          ? "active-no-sub"
-                          : "missed"
+                            ? "active-no-sub"
+                            : "missed"
                       }`}
                     >
                       <span>{plat.name}</span>
@@ -196,8 +301,8 @@ function AppContent() {
                         {submittedToday
                           ? "✅ Coded Today"
                           : hasData
-                          ? "✅ Active (No submission today)"
-                          : "❌ No Data"}
+                            ? "✅ Active (No submission today)"
+                            : "❌ No Data"}
                       </span>
                     </div>
                   );
@@ -230,6 +335,5 @@ function App() {
     </ThemeProvider>
   );
 }
-
 
 export default App;

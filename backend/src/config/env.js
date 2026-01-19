@@ -11,7 +11,7 @@ const config = {
   JWT_SECRET: process.env.JWT_SECRET || (() => {
     throw new Error('JWT_SECRET environment variable is required');
   })(),
-  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
 
   // Database Configuration
   MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/grindmap',

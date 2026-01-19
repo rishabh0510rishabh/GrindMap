@@ -1,11 +1,15 @@
 import express from 'express';
 import ScrapeController from '../controllers/scrape.controller.js';
 import { validateUsername } from '../middlewares/validation.middleware.js';
+import { validateUsername as validateUsernameInput, sanitizeUsername } from '../middlewares/inputValidation.middleware.js';
 import { scrapingLimiter } from '../middlewares/rateLimiter.middleware.js';
 import { platformCache, userCache } from '../middlewares/cache.middleware.js';
 import { auditLogger } from '../middlewares/audit.middleware.js';
 
 const router = express.Router();
+
+// Apply input validation and sanitization to all username routes
+router.use('/:platform/:username', validateUsernameInput, sanitizeUsername);
 
 /**
  * @route   GET /api/scrape/leetcode/:username
@@ -17,7 +21,7 @@ router.get(
   scrapingLimiter,
   validateUsername,
   auditLogger('FETCH_LEETCODE_STATS'),
-  platformCache, // 15 minutes cache
+  platformCache,
   ScrapeController.getLeetCodeStats
 );
 

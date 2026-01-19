@@ -64,6 +64,9 @@ class WebSocketManager {
       case 'subscribe':
         this.subscribeToUpdates(ws, data, correlationId);
         break;
+      case 'subscribe_notifications':
+        this.subscribeToNotifications(ws, correlationId);
+        break;
       case 'ping':
         ws.send(JSON.stringify({ type: 'pong' }));
         break;
@@ -173,14 +176,46 @@ class WebSocketManager {
   }
 
   /**
+   * Subscribe client to notifications
+   */
+  subscribeToNotifications(ws, correlationId) {
+    if (!ws.authenticated) {
+      ws.send(JSON.stringify({ 
+        type: 'error', 
+        message: 'Not authenticated' 
+      }));
+      return;
+    }
+
+    ws.notificationsEnabled = true;
+
+    ws.send(JSON.stringify({ 
+      type: 'notification_subscription_success',
+      message: 'Subscribed to notifications' 
+    }));
+
+    Logger.info('Client subscribed to notifications', { 
+      userId: ws.userId, 
+      correlationId 
+    });
+  }
+
+  /**
    * Send notification to specific user
    */
-  sendToUser(userId, message) {
+  sendNotificationToUser(userId, notification) {
     const connections = this.clients.get(userId);
     if (connections) {
-      const data = JSON.stringify(message);
+      const message = JSON.stringify({
+        type: 'notification',
+        ...notification,
+        timestamp: new Date().toISOString()
+      });
+      
       for (const ws of connections) {
-        ws.send(data);
+        if (ws.notificationsEnabled) {
+          ws.send(message);
+        }
       }
     }
   }

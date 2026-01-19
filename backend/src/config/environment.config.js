@@ -32,7 +32,7 @@ const validateEnvironment = () => {
  */
 export const config = {
   // Server configuration
-  port: parseInt(process.env.PORT) || 5001,
+  port: parseInt(process.env.PORT) || 8080,
   nodeEnv: process.env.NODE_ENV || ENVIRONMENTS.DEVELOPMENT,
   
   // Database configuration
