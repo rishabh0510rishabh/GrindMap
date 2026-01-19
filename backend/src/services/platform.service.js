@@ -11,6 +11,7 @@ import { AppError, ERROR_CODES } from '../utils/appError.js';
 import redis from '../config/redis.js';
 import config from '../config/env.js';
 import DataChangeEmitter from '../utils/dataChangeEmitter.js';
+import NotificationService from './notification.service.js';
 
 /**
  * Platform scraping service - handles all platform data fetching
@@ -275,6 +276,32 @@ class PlatformService {
    */
   getActivityService() {
     return this.container?.get('activityService');
+  }
+
+  /**
+   * Check for progress and send notifications
+   */
+  async checkProgressAndNotify(userId, platform, newData, cachedData) {
+    if (!cachedData || !newData.data) return;
+
+    const oldCount = cachedData.data?.problemsSolved || cachedData.data?.totalSolved || 0;
+    const newCount = newData.data?.problemsSolved || newData.data?.totalSolved || 0;
+
+    if (newCount > oldCount) {
+      const problemsGained = newCount - oldCount;
+      await NotificationService.createNotification(
+        userId,
+        'friend_progress',
+        `Progress on ${platform}!`,
+        `You solved ${problemsGained} new problem${problemsGained > 1 ? 's' : ''} on ${platform}. Total: ${newCount}`,
+        {
+          platform,
+          problemsGained,
+          totalProblems: newCount,
+          username: newData.username
+        }
+      );
+    }
   }
 }
 

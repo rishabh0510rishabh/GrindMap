@@ -17,6 +17,7 @@ import WebSocketManager from './utils/websocketManager.js';
 import scrapeRoutes from './routes/scrape.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import cacheRoutes from './routes/cache.routes.js';
+import notificationRoutes from './routes/notification.routes.js';
 
 // Import constants
 import { HTTP_STATUS, ENVIRONMENTS } from './constants/app.constants.js';
@@ -77,6 +78,7 @@ app.get('/health', (req, res) => {
 app.use('/api/scrape', scrapeRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/cache', cacheRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // API documentation endpoint
 app.get('/api', (req, res) => {
