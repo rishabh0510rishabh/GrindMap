@@ -2,6 +2,7 @@ import React from "react";
 import CircularProgress from "./CircularProgress";
 import ActivityHeatmap from "./ActivityHeatmap";
 import PlatformCardSkeleton from "./PlatformCardSkeleton";
+import styles from "./PlatformCard.module.css";
 
 const PlatformCard = ({
   platform,
@@ -14,18 +15,21 @@ const PlatformCard = ({
   const isExpanded = expanded === platform.key;
 
   if (loading) {
-  return <PlatformCardSkeleton platform={platform} />;
-}
-
+    return <PlatformCardSkeleton platform={platform} />;
+  }
 
   if (!data) {
     return (
       <div
-        className={`platform-card ${isExpanded ? "expanded" : ""}`}
+        className={`platform-card ${styles.card} ${
+          isExpanded ? "expanded" : ""
+        }`}
         onClick={() => onToggle(platform.key)}
       >
         <div className="card-header">
-          <h3 style={{ color: platform.color }}>{platform.name}</h3>
+          <h3 className={styles.title} style={{ color: platform.color }}>
+            {platform.name}
+          </h3>
           <div className="platform-progress">
             <CircularProgress
               percentage={percentage}
@@ -34,7 +38,7 @@ const PlatformCard = ({
             />
           </div>
         </div>
-        <p className="placeholder">Enter username and refresh</p>
+        <p className={styles.placeholder}>Enter username and refresh</p>
       </div>
     );
   }
@@ -42,11 +46,15 @@ const PlatformCard = ({
   if (data.error) {
     return (
       <div
-        className={`platform-card ${isExpanded ? "expanded" : ""}`}
+        className={`platform-card ${styles.card} ${
+          isExpanded ? "expanded" : ""
+        }`}
         onClick={() => onToggle(platform.key)}
       >
         <div className="card-header">
-          <h3 style={{ color: platform.color }}>{platform.name}</h3>
+          <h3 className={styles.title} style={{ color: platform.color }}>
+            {platform.name}
+          </h3>
           <div className="platform-progress">
             <CircularProgress
               percentage={0}
@@ -62,11 +70,15 @@ const PlatformCard = ({
 
   return (
     <div
-      className={`platform-card ${isExpanded ? "expanded" : ""}`}
+      className={`platform-card ${styles.card} ${
+        isExpanded ? "expanded" : ""
+      }`}
       onClick={() => onToggle(platform.key)}
     >
       <div className="card-header">
-        <h3 style={{ color: platform.color }}>{platform.name}</h3>
+        <h3 className={styles.title} style={{ color: platform.color }}>
+          {platform.name}
+        </h3>
         <div className="platform-progress">
           <CircularProgress
             percentage={percentage}
@@ -137,7 +149,7 @@ const PlatformCard = ({
                           .toISOString()
                           .split("T")[0],
                         count,
-                      }),
+                      })
                     )}
                   />
                 ) : (

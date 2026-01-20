@@ -1,44 +1,34 @@
-import rateLimit from 'express-rate-limit';
-import { RATE_LIMITS, HTTP_STATUS, MESSAGES } from '../constants/app.constants.js';
+import DistributedRateLimiter from '../utils/distributedRateLimiter.js';
+import { RATE_LIMITS, HTTP_STATUS } from '../constants/app.constants.js';
 
 /**
- * General API rate limiter for all endpoints
- * Prevents abuse while allowing normal usage
+ * General API rate limiter using distributed Redis storage
  */
-const generalLimiter = rateLimit({
+const generalLimiter = DistributedRateLimiter.createMiddleware({
   windowMs: RATE_LIMITS.GENERAL_WINDOW_MS,
   max: RATE_LIMITS.GENERAL_MAX_REQUESTS,
-  message: {
-    success: false,
-    message: MESSAGES.RATE_LIMIT_EXCEEDED,
-    errorCode: 'RATE_LIMIT_EXCEEDED',
-    retryAfter: '15 minutes'
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  statusCode: HTTP_STATUS.TOO_MANY_REQUESTS
+  keyGenerator: (req) => req.ip,
+  message: 'Too many requests, please try again later'
 });
 
 /**
  * Strict rate limiter for resource-intensive scraping endpoints
- * Prevents server overload and respects external API limits
  */
-const scrapingLimiter = rateLimit({
+const scrapingLimiter = DistributedRateLimiter.createMiddleware({
   windowMs: RATE_LIMITS.SCRAPING_WINDOW_MS,
   max: RATE_LIMITS.SCRAPING_MAX_REQUESTS,
-  message: {
-    success: false,
-    message: 'Rate limit exceeded for scraping endpoints',
-    errorCode: 'SCRAPING_RATE_LIMIT_EXCEEDED',
-    retryAfter: '1 minute'
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  statusCode: HTTP_STATUS.TOO_MANY_REQUESTS,
-  keyGenerator: (req) => {
-    // Combine IP and username for more granular rate limiting
-    return `${req.ip}:${req.params.username || 'anonymous'}`;
-  }
+  keyGenerator: (req) => `${req.ip}:${req.params.username || 'anonymous'}`,
+  message: 'Rate limit exceeded for scraping endpoints'
 });
 
-export { generalLimiter, scrapingLimiter };
+/**
+ * Login rate limiter with user-specific tracking
+ */
+const loginLimiter = DistributedRateLimiter.createMiddleware({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per window
+  keyGenerator: (req) => `login:${req.ip}:${req.body.email || 'anonymous'}`,
+  message: 'Too many login attempts, please try again after 15 minutes'
+});
+
+export { generalLimiter, scrapingLimiter, loginLimiter };

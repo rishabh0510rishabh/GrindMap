@@ -1,121 +1,73 @@
-import puppeteer from "puppeteer";
-import { createBrowser } from "../config/puppeeteer.js";
+import ApiClient from '../../utils/apiClient.js';
+import InputValidator from '../../utils/inputValidator.js';
+import ScraperErrorHandler from '../../utils/scraperErrorHandler.js';
+import Logger from '../../utils/logger.js';
+import RequestManager from '../../utils/requestManager.js';
+
+// Create LeetCode API client with circuit breaker
+const leetcodeClient = ApiClient.createLeetCodeClient();
 
 export async function scrapeLeetCode(username) {
-  let browser;
+  const startTime = Date.now();
+  let validatedUsername;
+  
   try {
-    browser = await createBrowser();
-    const page = await browser.newPage();
-
-    // Navigate to LeetCode profile
-    await page.goto(`https://leetcode.com/${username}/`, {
-      waitUntil: 'networkidle2',
-      timeout: 30000
+    // Validate and sanitize username
+    validatedUsername = InputValidator.validateUsername(username, 'LEETCODE');
+    
+    Logger.debug(`Starting LeetCode scrape for user: ${validatedUsername}`);
+    
+    const response = await leetcodeClient.get(`https://leetcode-stats.tashif.codes/${validatedUsername}`, {
+      cacheTTL: 300, // 5 minutes cache
+      cacheKey: `leetcode:${validatedUsername}`
     });
-
-    // Wait for profile content to load (React rendering)
-    await page.waitForTimeout(3000);
-
-    // Extract data from the page
-    const data = await page.evaluate(() => {
-      // Helper function to extract text content safely
-      const getText = (selector) => {
-        const element = document.querySelector(selector);
-        return element ? element.textContent.trim() : null;
-      };
-
-      // Helper function to extract number from text
-      const extractNumber = (text) => {
-        if (!text) return 0;
-        const match = text.match(/\d+/);
-        return match ? parseInt(match[0], 10) : 0;
-      };
-
-      // Try multiple selectors for different data points
-      const totalSolved = extractNumber(
-        getText('[data-cy="problem-solved"]') ||
-        getText('.text-[24px]') ||
-        getText('.total-solved') ||
-        getText('[class*="solved"]')
-      );
-
-      const easySolved = extractNumber(
-        getText('[data-cy="easy-solved"]') ||
-        getText('.text-green-500') ||
-        getText('.easy-count')
-      );
-
-      const mediumSolved = extractNumber(
-        getText('[data-cy="medium-solved"]') ||
-        getText('.text-yellow-500') ||
-        getText('.medium-count')
-      );
-
-      const hardSolved = extractNumber(
-        getText('[data-cy="hard-solved"]') ||
-        getText('.text-red-500') ||
-        getText('.hard-count')
-      );
-
-      const ranking = extractNumber(
-        getText('[data-cy="ranking"]') ||
-        getText('.ranking') ||
-        getText('[class*="rank"]')
-      );
-
-      const reputation = extractNumber(
-        getText('[data-cy="reputation"]') ||
-        getText('.reputation') ||
-        getText('[class*="reputation"]')
-      );
-
-      // Extract submission calendar
-      let submissionCalendar = null;
-      try {
-        const scripts = document.querySelectorAll('script');
-        for (let script of scripts) {
-          const text = script.textContent;
-          if (text.includes('submissionCalendar')) {
-            const match = text.match(/submissionCalendar\s*:\s*(\{[^}]*\})/);
-            if (match) {
-              submissionCalendar = JSON.parse(match[1]);
-              break;
-            }
-          }
-        }
-      } catch (e) {
-        // Ignore parsing errors
+    
+    // Validate API response
+    InputValidator.validateApiResponse(response.data, 'LeetCode', ['totalSolved', 'totalQuestions']);
+    
+    // Sanitize response data
+    const sanitizedData = InputValidator.sanitizeResponse(response.data);
+    
+    const result = ScraperErrorHandler.createSuccessResponse(
+      'LEETCODE',
+      validatedUsername,
+      sanitizedData,
+      {
+        fromCache: response.fromCache,
+        fromFallback: response.fromFallback,
+        responseTime: Date.now() - startTime
       }
-
-      return {
-        totalSolved: totalSolved || 0,
-        easySolved: easySolved || 0,
-        mediumSolved: mediumSolved || 0,
-        hardSolved: hardSolved || 0,
-        ranking: ranking || null,
-        reputation: reputation || null,
-        submissionCalendar,
-        totalQuestions: 2500 // Approximate total LeetCode problems
-      };
+    );
+    
+    // Log performance metrics
+    ScraperErrorHandler.logPerformanceMetrics(
+      'LeetCode',
+      validatedUsername,
+      startTime,
+      true,
+      response.fromCache
+    );
+    
+    return result;
+    
+  } catch (error) {
+    // Handle circuit breaker errors first
+    if (ScraperErrorHandler.handleCircuitBreakerError(error, 'LeetCode')) {
+      return;
+    }
+    
+    // Log performance metrics for failed requests
+    ScraperErrorHandler.logPerformanceMetrics(
+      'LeetCode',
+      validatedUsername || username,
+      startTime,
+      false
+    );
+    
+    // Handle and standardize the error
+    ScraperErrorHandler.handleScraperError(error, 'LeetCode', validatedUsername || username, {
+      apiEndpoint: 'leetcode-stats.tashif.codes',
+      circuitBreakerState: leetcodeClient.getCircuitBreakerState()
     });
-
-    // Check if profile exists (look for error messages or empty data)
-    const pageTitle = await page.title();
-    if (pageTitle.includes('404') || pageTitle.includes('Not Found') || data.totalSolved === 0) {
-      throw new Error(`LeetCode user '${username}' not found or has no solved problems`);
-    }
-
-    return {
-      platform: "LEETCODE",
-      username,
-      data
-    };
-
-  } catch (err) {
-    throw new Error(`Failed to fetch LeetCode data: ${err.message}`);
-  } finally {
-    if (browser) {
-      await browser.close();
-    }
   }
 }

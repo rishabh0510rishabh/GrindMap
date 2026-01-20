@@ -1,29 +1,121 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import { createServer } from 'http';
+import connectDB from './config/db.js';
+import dbManager from './utils/databaseManager.js';
 import { corsOptions } from './config/cors.js';
 import { errorHandler, notFound } from './middlewares/error.middleware.js';
 import { securityHeaders } from './middlewares/security.middleware.js';
+import { enhancedSecurityHeaders } from './middlewares/enhancedSecurity.middleware.js';
 import { requestLogger, securityMonitor } from './middlewares/logging.middleware.js';
 import { sanitizeInput } from './middlewares/validation.middleware.js';
 import { generalLimiter } from './middlewares/rateLimiter.middleware.js';
+import { correlationId } from './middlewares/correlationId.middleware.js';
+import { performanceMetrics } from './middlewares/performance.middleware.js';
+import { distributedRateLimit, botDetection, geoSecurityCheck, securityAudit, abuseDetection } from './middlewares/advancedSecurity.middleware.js';
+import { autoRefresh } from './middlewares/jwtManager.middleware.js';
+import { globalErrorBoundary } from './middlewares/errorBoundary.middleware.js';
+import DistributedSessionManager from './utils/distributedSessionManager.js';
+import WebSocketManager from './utils/websocketManager.js';
+import BatchProcessingService from './services/batchProcessing.service.js';
+import CacheWarmingService from './utils/cacheWarmingService.js';
+import JobQueue from './services/jobQueue.service.js';
+import CronScheduler from './services/cronScheduler.service.js';
+import JobHandlers from './services/jobHandlers.service.js';
+import HealthMonitor from './utils/healthMonitor.js';
+import AlertManager from './utils/alertManager.js';
+import { performanceMonitoring, errorTracking, memoryMonitoring } from './middlewares/monitoring.middleware.js';
+import RequestManager from './utils/requestManager.js';
+import PuppeteerManager from './utils/puppeteerManager.js';
 
 // Import routes
 import scrapeRoutes from './routes/scrape.routes.js';
 import authRoutes from './routes/auth.routes.js';
+import cacheRoutes from './routes/cache.routes.js';
+import advancedCacheRoutes from './routes/advancedCache.routes.js';
+import notificationRoutes from './routes/notification.routes.js';
+import analyticsRoutes from './routes/analytics.routes.js';
+import securityRoutes from './routes/security.routes.js';
+import databaseRoutes from './routes/database.routes.js';
+import websocketRoutes from './routes/websocket.routes.js';
+import quotaRoutes from './routes/quota.routes.js';
+import jobsRoutes from './routes/jobs.routes.js';
+import monitoringRoutes from './routes/monitoring.routes.js';
+
+// Import secure logger to prevent JWT exposure
+import './utils/secureLogger.js';
 
 // Import constants
 import { HTTP_STATUS, ENVIRONMENTS } from './constants/app.constants.js';
+import Logger from './utils/logger.js';
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const server = createServer(app);
+const PORT = process.env.PORT || 8080;
 const NODE_ENV = process.env.NODE_ENV || ENVIRONMENTS.DEVELOPMENT;
 
-// Security middleware (applied first)
+// Initialize global error boundary
+globalErrorBoundary();
+
+// Connect to database
+connectDB();
+
+// Initialize WebSocket server
+WebSocketManager.initialize(server);
+
+// Start batch processing scheduler
+BatchProcessingService.startScheduler();
+
+// Start cache warming service
+CacheWarmingService.startDefaultSchedules();
+
+// Register job handlers
+JobQueue.registerHandler('scraping', JobHandlers.handleScraping);
+JobQueue.registerHandler('cache_warmup', JobHandlers.handleCacheWarmup);
+JobQueue.registerHandler('analytics', JobHandlers.handleAnalytics);
+JobQueue.registerHandler('notification', JobHandlers.handleNotification);
+JobQueue.registerHandler('cleanup', JobHandlers.handleCleanup);
+JobQueue.registerHandler('export', JobHandlers.handleExport);
+
+// Start job processing
+JobQueue.startProcessing({ concurrency: 3, types: [] });
+
+// Start cron scheduler
+CronScheduler.start();
+
+// Start health monitoring
+HealthMonitor.startMonitoring(30000); // Every 30 seconds
+
+// Start alert monitoring
+AlertManager.startMonitoring(60000); // Every minute
+
+// Request tracking and monitoring (first)
+app.use(correlationId);
+app.use(performanceMetrics);
+
+// Distributed session management
+app.use(DistributedSessionManager.middleware());
+
+// Enhanced security middleware
+app.use(enhancedSecurityHeaders);
 app.use(securityHeaders);
 app.use(requestLogger);
 app.use(securityMonitor);
 
-// Rate limiting
+// Monitoring middleware
+app.use(performanceMonitoring);
+app.use(memoryMonitoring);
+
+// Advanced security middleware
+app.use(distributedRateLimit);
+app.use(botDetection);
+app.use(geoSecurityCheck);
+app.use(securityAudit);
+app.use(abuseDetection);
+app.use(autoRefresh);
+
+// Distributed rate limiting
 app.use(generalLimiter);
 
 // CORS configuration
@@ -36,19 +128,53 @@ app.use(express.urlencoded({ extended: true }));
 // Input sanitization
 app.use(sanitizeInput);
 
+// Passport Middleware
+app.use(passport.initialize());
+configurePassport();
+
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(HTTP_STATUS.OK).json({
-    success: true,
-    message: 'Server is healthy',
-    timestamp: new Date().toISOString(),
-    environment: NODE_ENV,
-  });
+app.get('/health', async (req, res) => {
+  Logger.info('Health check accessed', { correlationId: req.correlationId });
+  
+  try {
+    const dbHealth = await dbManager.healthCheck();
+    const dbStats = dbManager.getConnectionStats();
+    
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Server is healthy',
+      timestamp: new Date().toISOString(),
+      environment: NODE_ENV,
+      correlationId: req.correlationId,
+      sessionActive: !!req.session,
+      websocketClients: WebSocketManager.getClientsCount(),
+      database: dbHealth,
+      connectionStats: dbStats
+    });
+  } catch (error) {
+    Logger.error('Health check failed', { error: error.message });
+    res.status(503).json({
+      success: false,
+      message: 'Server unhealthy',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // API routes
 app.use('/api/scrape', scrapeRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/cache', cacheRoutes);
+app.use('/api/advanced-cache', advancedCacheRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/security', securityRoutes);
+app.use('/api/database', databaseRoutes);
+app.use('/api/websocket', websocketRoutes);
+app.use('/api/quota', quotaRoutes);
+app.use('/api/jobs', jobsRoutes);
+app.use('/api/monitoring', monitoringRoutes);
 
 // API documentation endpoint
 app.get('/api', (req, res) => {
@@ -59,8 +185,19 @@ app.get('/api', (req, res) => {
     endpoints: {
       scraping: '/api/scrape',
       authentication: '/api/auth',
+      cache: '/api/cache',
+      advancedCache: '/api/advanced-cache',
+      notifications: '/api/notifications',
+      analytics: '/api/analytics',
+      websocket: '/ws',
+      websocketAPI: '/api/websocket',
+      quota: '/api/quota',
+      jobs: '/api/jobs',
+      monitoring: '/api/monitoring',
       health: '/health',
+      database: '/api/database'
     },
+    correlationId: req.correlationId
   });
 });
 
@@ -68,34 +205,58 @@ app.get('/api', (req, res) => {
 app.use(notFound);
 
 // Global error handler (must be last)
+app.use(errorTracking);
 app.use(errorHandler);
 
 // Global error handlers for unhandled promises and exceptions
 process.on('unhandledRejection', (err) => {
-  console.error('🚨 Unhandled Promise Rejection:', err.message);
-  console.error('Stack:', err.stack);
+  Logger.error('Unhandled Promise Rejection', {
+    error: err.message,
+    stack: err.stack
+  });
   process.exit(1);
 });
 
 process.on('uncaughtException', (err) => {
-  console.error('🚨 Uncaught Exception:', err.message);
-  console.error('Stack:', err.stack);
+  Logger.error('Uncaught Exception', {
+    error: err.message,
+    stack: err.stack
+  });
   process.exit(1);
 });
 
 // Graceful shutdown handler
-process.on('SIGTERM', () => {
-  console.log('👋 SIGTERM received. Shutting down gracefully...');
+process.on('SIGTERM', async () => {
+  Logger.info('SIGTERM received. Shutting down gracefully...');
+  
+  // Cleanup resources
+  await RequestManager.cleanup();
+  await PuppeteerManager.cleanup();
+  
   server.close(() => {
-    console.log('✅ Process terminated');
+    Logger.info('Process terminated');
   });
 });
 
 // Start server
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Environment: ${NODE_ENV}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-});
+const startServer = async () => {
+  try {
+    await connectDB();
+    server.listen(PORT, () => {
+      Logger.info('Server started', {
+        port: PORT,
+        environment: NODE_ENV,
+        healthCheck: `http://localhost:${PORT}/health`,
+        websocket: `ws://localhost:${PORT}/ws`,
+        features: ['distributed-rate-limiting', 'distributed-sessions', 'real-time-updates']
+      });
+    });
+  } catch (error) {
+    Logger.error('Failed to connect to database', error);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 export default app;

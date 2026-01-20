@@ -1,6 +1,8 @@
+<div align="center">
+
 # 🚀 GrindMap
 
-<div align="center">
+*Repo ranked #19 @ECWoC 26*
 
 <img src="https://img.shields.io/badge/Track%20Your-Coding%20Journey-FF6B6B?style=for-the-badge&logo=github&logoColor=white" alt="Track Your Coding Journey" />
 
@@ -18,6 +20,8 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=flat&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 
 [🌐 Live Demo](#-interactive-demo) • [📖 Documentation](#) • [🤝 Contributing](CONTRIBUTING.md) • [🐛 Issues](../../issues) • [💬 Discussions](../../discussions)
+
+</div>
 
 ---
 
@@ -44,7 +48,7 @@
 
 ## ✨ Features
 
-<div align="center">
+<div>
 
 ### 🎯 **Multi-Platform Tracking**
 Track your coding journey across **7+ competitive programming platforms** with unified analytics and progress visualization.
@@ -137,7 +141,7 @@ Fetch live statistics using official APIs and scraping techniques, ensuring your
 
 ## 🎮 Interactive Demo
 
-<div align="center">
+<div>
 
 **🎯 Experience GrindMap Without Setup!**
 
@@ -346,7 +350,7 @@ User authentication endpoint.
 
 ## 📸 Screenshots
 
-<div align="center">
+<div>
 
 ### 🖥️ Dashboard Overview
 *Main dashboard showing multi-platform tracking with progress rings*
@@ -381,7 +385,7 @@ User authentication endpoint.
 
 ## 🤝 Contributing
 
-<div align="center">
+<div >
 
 **We ❤️ contributions! Every contribution makes GrindMap better for everyone.**
 
@@ -505,7 +509,7 @@ A: Try clearing browser cache or using an incognito window.
 
 ## 📝 License
 
-<div align="center">
+<div>
 
 **GrindMap** is licensed under the **MIT License**.
 
@@ -539,7 +543,7 @@ SOFTWARE.
 
 ## 🙏 Acknowledgments
 
-<div align="center">
+<div>
 
 **GrindMap wouldn't be possible without these amazing communities and tools:**
 
@@ -574,7 +578,7 @@ A huge thank you to all our [contributors](../../contributors) who make GrindMap
 
 ## 📞 Contact
 
-<div align="center">
+<div>
 
 **Got questions, feedback, or just want to say hi? We'd love to hear from you!**
 

@@ -14,9 +14,9 @@ export const HTTP_STATUS = {
 // Rate Limiting
 export const RATE_LIMITS = {
   GENERAL_WINDOW_MS: 15 * 60 * 1000, // 15 minutes
-  GENERAL_MAX_REQUESTS: 100,
+  GENERAL_MAX_REQUESTS: 5, // Changed to 5
   SCRAPING_WINDOW_MS: 60 * 1000, // 1 minute
-  SCRAPING_MAX_REQUESTS: 10,
+  SCRAPING_MAX_REQUESTS: 5, // Changed to 5
 };
 
 // Request Timeouts

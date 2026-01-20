@@ -2,54 +2,63 @@ import { body, param, validationResult } from 'express-validator';
 import xss from 'xss';
 import { AppError, ERROR_CODES } from '../utils/appError.js';
 import { VALIDATION, HTTP_STATUS, MESSAGES } from '../constants/app.constants.js';
+import { asyncMiddleware } from '../utils/asyncWrapper.js';
 
 /**
  * Sanitization middleware to prevent XSS attacks
  * Cleans all user input (params, query, body)
  */
-const sanitizeInput = (req, res, next) => {
-  // Sanitize URL parameters
-  Object.keys(req.params).forEach(key => {
-    if (typeof req.params[key] === 'string') {
-      req.params[key] = xss(req.params[key].trim());
-    }
-  });
-
-  // Sanitize query parameters
-  Object.keys(req.query).forEach(key => {
-    if (typeof req.query[key] === 'string') {
-      req.query[key] = xss(req.query[key].trim());
-    }
-  });
-
-  // Sanitize request body
-  if (req.body && typeof req.body === 'object') {
-    Object.keys(req.body).forEach(key => {
-      if (typeof req.body[key] === 'string') {
-        req.body[key] = xss(req.body[key].trim());
+const sanitizeInput = asyncMiddleware(async (req, res, next) => {
+  try {
+    // Sanitize URL parameters
+    Object.keys(req.params).forEach(key => {
+      if (typeof req.params[key] === 'string') {
+        req.params[key] = xss(req.params[key].trim());
       }
     });
-  }
 
-  next();
-};
+    // Sanitize query parameters
+    Object.keys(req.query).forEach(key => {
+      if (typeof req.query[key] === 'string') {
+        req.query[key] = xss(req.query[key].trim());
+      }
+    });
+
+    // Sanitize request body
+    if (req.body && typeof req.body === 'object') {
+      Object.keys(req.body).forEach(key => {
+        if (typeof req.body[key] === 'string') {
+          req.body[key] = xss(req.body[key].trim());
+        }
+      });
+    }
+
+    next();
+  } catch (error) {
+    throw new AppError('Input sanitization failed', HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR);
+  }
+});
 
 /**
  * Validation error handler middleware
  * Converts express-validator errors to standardized format
  */
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const errorMessages = errors.array().map(error => error.msg);
-    throw new AppError(
-      errorMessages.join(', '), 
-      HTTP_STATUS.BAD_REQUEST, 
-      ERROR_CODES.VALIDATION_ERROR
-    );
+const handleValidationErrors = asyncMiddleware(async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const errorMessages = errors.array().map(error => error.msg);
+      throw new AppError(
+        errorMessages.join(', '), 
+        HTTP_STATUS.BAD_REQUEST, 
+        ERROR_CODES.VALIDATION_ERROR
+      );
+    }
+    next();
+  } catch (error) {
+    next(error);
   }
-  next();
-};
+});
 
 /**
  * Username validation rules for platform endpoints
