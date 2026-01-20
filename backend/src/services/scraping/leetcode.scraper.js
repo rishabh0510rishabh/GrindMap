@@ -1,38 +1,77 @@
 import ApiClient from '../../utils/apiClient.js';
-import ScraperValidator from '../../utils/scraperValidator.js';
+import InputValidator from '../../utils/inputValidator.js';
+import ScraperErrorHandler from '../../utils/scraperErrorHandler.js';
 import Logger from '../../utils/logger.js';
+import RequestManager from '../../utils/requestManager.js';
 
 // Create LeetCode API client with circuit breaker
 const leetcodeClient = ApiClient.createLeetCodeClient();
 
 export async function scrapeLeetCode(username) {
-  const validatedUsername = ScraperValidator.validateUsername(username, 'LEETCODE');
+  const startTime = Date.now();
+  let validatedUsername;
   
   try {
-    const response = await leetcodeClient.get(`https://leetcode-stats.tashif.codes/${validatedUsername}`, {
-      cacheTTL: 300, // 5 minutes cache
-      cacheKey: `leetcode:${validatedUsername}`
+    // Validate and sanitize username
+    validatedUsername = InputValidator.validateUsername(username, 'LEETCODE');
+    
+    Logger.debug(`Starting LeetCode scrape for user: ${validatedUsername}`);
+    
+    const response = await RequestManager.makeRequest({
+      method: 'GET',
+      url: `https://leetcode-stats.tashif.codes/${validatedUsername}`,
+      timeout: 8000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
     });
     
-    if (!response.data) {
-      throw new Error('No data received from LeetCode API');
+    // Validate API response
+    InputValidator.validateApiResponse(response.data, 'LeetCode', ['totalSolved', 'totalQuestions']);
+    
+    // Sanitize response data
+    const sanitizedData = InputValidator.sanitizeResponse(response.data);
+    
+    const result = ScraperErrorHandler.createSuccessResponse(
+      'LEETCODE',
+      validatedUsername,
+      sanitizedData,
+      {
+        fromCache: response.fromCache,
+        fromFallback: response.fromFallback,
+        responseTime: Date.now() - startTime
+      }
+    );
+    
+    // Log performance metrics
+    ScraperErrorHandler.logPerformanceMetrics(
+      'LeetCode',
+      validatedUsername,
+      startTime,
+      true,
+      response.fromCache
+    );
+    
+    return result;
+    
+  } catch (error) {
+    // Handle circuit breaker errors first
+    if (ScraperErrorHandler.handleCircuitBreakerError(error, 'LeetCode')) {
+      return;
     }
     
-    const sanitizedData = ScraperValidator.sanitizeResponse(response.data);
+    // Log performance metrics for failed requests
+    ScraperErrorHandler.logPerformanceMetrics(
+      'LeetCode',
+      validatedUsername || username,
+      startTime,
+      false
+    );
     
-    return {
-      platform: "LEETCODE",
-      username: validatedUsername,
-      data: sanitizedData,
-      fromCache: response.fromCache,
-      fromFallback: response.fromFallback
-    };
-  } catch (error) {
-    Logger.error('LeetCode scraping failed', { 
-      username: validatedUsername, 
-      error: error.message,
+    // Handle and standardize the error
+    ScraperErrorHandler.handleScraperError(error, 'LeetCode', validatedUsername || username, {
+      apiEndpoint: 'leetcode-stats.tashif.codes',
       circuitBreakerState: leetcodeClient.getCircuitBreakerState()
     });
-    throw new Error(`Failed to fetch LeetCode data: ${error.message}`);
   }
 }

@@ -1,9 +1,11 @@
 import { puppeteerPool } from '../../utils/puppeteerPool.js';
 import CircuitBreaker from '../../utils/circuitBreaker.js';
 import RetryManager from '../../utils/retryManager.js';
-import ScraperValidator from '../../utils/scraperValidator.js';
+import InputValidator from '../../utils/inputValidator.js';
+import ScraperErrorHandler from '../../utils/scraperErrorHandler.js';
 import Logger from '../../utils/logger.js';
 import redis from '../../config/redis.js';
+import PuppeteerManager from '../../utils/puppeteerManager.js';
 
 // Create circuit breaker for CodeChef scraping
 const codechefCircuitBreaker = new CircuitBreaker({
@@ -19,66 +21,92 @@ const retryManager = new RetryManager({
 });
 
 export async function fetchCodeChefStats(username) {
-  const validatedUsername = ScraperValidator.validateUsername(username, 'CODECHEF');
-  const cacheKey = `codechef:${validatedUsername}`;
+  const startTime = Date.now();
+  let validatedUsername;
   
-  // Check cache first
   try {
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      Logger.debug(`Cache hit for CodeChef user ${validatedUsername}`);
-      return { ...JSON.parse(cached), fromCache: true };
-    }
-  } catch (error) {
-    Logger.warn('Cache read error for CodeChef', { error: error.message });
-  }
-  
-  const scrapeData = async () => {
-    let page;
-    let browser;
+    // Validate and sanitize username
+    validatedUsername = InputValidator.validateUsername(username, 'CODECHEF');
     
+    Logger.debug(`Starting CodeChef scrape for user: ${validatedUsername}`);
+    
+    const cacheKey = `codechef:${validatedUsername}`;
+    
+    // Check cache first
     try {
-      browser = await puppeteerPool.getBrowser();
-      page = await puppeteerPool.createPage(browser);
-      
-      await page.goto(`https://www.codechef.com/users/${validatedUsername}`, {
-        waitUntil: 'networkidle2',
-        timeout: 20000
-      });
-      
-      // Check if user exists
-      const userExists = await page.evaluate(() => {
-        return !document.querySelector('.error-message, .not-found');
-      });
-      
-      if (!userExists) {
-        throw new Error('User not found');
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        Logger.debug(`Cache hit for CodeChef user ${validatedUsername}`);
+        const cachedResult = JSON.parse(cached);
+        
+        // Log performance metrics for cache hit
+        ScraperErrorHandler.logPerformanceMetrics(
+          'CodeChef',
+          validatedUsername,
+          startTime,
+          true,
+          true
+        );
+        
+        return { ...cachedResult, fromCache: true };
       }
-      
-      const stats = await Promise.race([
-        page.evaluate(() => {
-          const ratingElement = document.querySelector('.rating-number');
-          const problemsElement = document.querySelector('.problems-solved');
-          
-          return {
-            rating: ratingElement ? parseInt(ratingElement.textContent) || 0 : 0,
-            problemsSolved: problemsElement ? parseInt(problemsElement.textContent) || 0 : 0
-          };
-        }),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Page evaluation timeout')), 15000)
-        )
-      ]);
-      
-      return ScraperValidator.sanitizeResponse(stats);
-    } finally {
-      if (page) {
-        await puppeteerPool.closePage(page);
-      }
+    } catch (error) {
+      Logger.warn('Cache read error for CodeChef', { error: error.message });
     }
-  };
-  
-  try {
+    
+    const scrapeData = async () => {
+      let page;
+      let browser;
+      
+      try {
+        browser = await PuppeteerManager.createBrowser();
+        page = await PuppeteerManager.createPage(browser);
+        
+        await page.goto(`https://www.codechef.com/users/${validatedUsername}`, {
+          waitUntil: 'networkidle2',
+          timeout: 15000
+        });
+        
+        // Check if user exists
+        const userExists = await page.evaluate(() => {
+          return !document.querySelector('.error-message, .not-found, .user-not-found');
+        });
+        
+        if (!userExists) {
+          throw new Error('User not found');
+        }
+        
+        const stats = await Promise.race([
+          page.evaluate(() => {
+            const ratingElement = document.querySelector('.rating-number, .rating');
+            const problemsElement = document.querySelector('.problems-solved, .problem-solved-count');
+            
+            return {
+              rating: ratingElement ? parseInt(ratingElement.textContent) || 0 : 0,
+              problemsSolved: problemsElement ? parseInt(problemsElement.textContent) || 0 : 0
+            };
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Page evaluation timeout')), 10000)
+          )
+        ]);
+        
+        // Validate scraped data
+        if (typeof stats.rating !== 'number' || typeof stats.problemsSolved !== 'number') {
+          throw new Error('Invalid data format scraped from page');
+        }
+        
+        return InputValidator.sanitizeResponse(stats);
+      } finally {
+        if (page) {
+          await PuppeteerManager.closePage(page);
+        }
+        if (browser) {
+          await PuppeteerManager.closeBrowser(browser);
+        }
+      }
+    };
+    
     const data = await codechefCircuitBreaker.execute(async () => {
       return await retryManager.execute(scrapeData, {
         platform: 'CodeChef',
@@ -86,11 +114,15 @@ export async function fetchCodeChefStats(username) {
       });
     });
     
-    const result = {
-      platform: 'CODECHEF',
-      username: validatedUsername,
-      data
-    };
+    const result = ScraperErrorHandler.createSuccessResponse(
+      'CODECHEF',
+      validatedUsername,
+      data,
+      {
+        responseTime: Date.now() - startTime,
+        source: 'puppeteer'
+      }
+    );
     
     // Cache successful result
     try {
@@ -101,15 +133,33 @@ export async function fetchCodeChefStats(username) {
       Logger.warn('Cache write error for CodeChef', { error: error.message });
     }
     
+    // Log performance metrics
+    ScraperErrorHandler.logPerformanceMetrics(
+      'CodeChef',
+      validatedUsername,
+      startTime,
+      true,
+      false
+    );
+    
     return result;
+    
   } catch (error) {
-    Logger.error('CodeChef scraping failed', { 
-      username: validatedUsername, 
-      error: error.message,
-      circuitBreakerState: codechefCircuitBreaker.getState()
-    });
+    // Handle circuit breaker errors first
+    if (ScraperErrorHandler.handleCircuitBreakerError(error, 'CodeChef')) {
+      return;
+    }
+    
+    // Log performance metrics for failed requests
+    ScraperErrorHandler.logPerformanceMetrics(
+      'CodeChef',
+      validatedUsername || username,
+      startTime,
+      false
+    );
     
     // Try to return fallback data
+    const cacheKey = `codechef:${validatedUsername || username}`;
     try {
       const fallback = await redis.get(`fallback:${cacheKey}`);
       if (fallback) {
@@ -120,6 +170,10 @@ export async function fetchCodeChefStats(username) {
       Logger.warn('Fallback data read error', { error: fallbackError.message });
     }
     
-    throw new Error(`Failed to fetch CodeChef data: ${error.message}`);
+    // Handle and standardize the error
+    ScraperErrorHandler.handleScraperError(error, 'CodeChef', validatedUsername || username, {
+      scrapeMethod: 'puppeteer',
+      circuitBreakerState: codechefCircuitBreaker.getState()
+    });
   }
 }
