@@ -2,6 +2,7 @@ import ApiClient from '../../utils/apiClient.js';
 import InputValidator from '../../utils/inputValidator.js';
 import ScraperErrorHandler from '../../utils/scraperErrorHandler.js';
 import Logger from '../../utils/logger.js';
+import RequestManager from '../../utils/requestManager.js';
 
 // Create LeetCode API client with circuit breaker
 const leetcodeClient = ApiClient.createLeetCodeClient();

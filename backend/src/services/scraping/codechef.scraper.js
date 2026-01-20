@@ -5,6 +5,7 @@ import InputValidator from '../../utils/inputValidator.js';
 import ScraperErrorHandler from '../../utils/scraperErrorHandler.js';
 import Logger from '../../utils/logger.js';
 import redis from '../../config/redis.js';
+import PuppeteerManager from '../../utils/puppeteerManager.js';
 
 // Create circuit breaker for CodeChef scraping
 const codechefCircuitBreaker = new CircuitBreaker({
@@ -23,7 +24,6 @@ export async function fetchCodeChefStats(username) {
   const startTime = Date.now();
   let validatedUsername;
   
-  // Check cache first
   try {
     // Validate and sanitize username
     validatedUsername = InputValidator.validateUsername(username, 'CODECHEF');
