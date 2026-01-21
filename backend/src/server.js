@@ -19,9 +19,9 @@ import DistributedSessionManager from './utils/distributedSessionManager.js';
 import WebSocketManager from './utils/websocketManager.js';
 import BatchProcessingService from './services/batchProcessing.service.js';
 import CacheWarmingService from './utils/cacheWarmingService.js';
-import JobQueue from './services/jobQueue.service.js';
+import RobustJobQueue from './utils/robustJobQueue.js';
 import CronScheduler from './services/cronScheduler.service.js';
-import JobHandlers from './services/jobHandlers.service.js';
+import ReliableJobHandlers from './services/reliableJobHandlers.service.js';
 import HealthMonitor from './utils/healthMonitor.js';
 import AlertManager from './utils/alertManager.js';
 import { performanceMonitoring, errorTracking, memoryMonitoring } from './middlewares/monitoring.middleware.js';
@@ -39,7 +39,7 @@ import securityRoutes from './routes/security.routes.js';
 import databaseRoutes from './routes/database.routes.js';
 import websocketRoutes from './routes/websocket.routes.js';
 import quotaRoutes from './routes/quota.routes.js';
-import jobsRoutes from './routes/jobs.routes.js';
+import jobMonitoringRoutes from './routes/jobMonitoring.routes.js';
 import monitoringRoutes from './routes/monitoring.routes.js';
 
 // Import secure logger to prevent JWT exposure
@@ -69,16 +69,15 @@ BatchProcessingService.startScheduler();
 // Start cache warming service
 CacheWarmingService.startDefaultSchedules();
 
-// Register job handlers
-JobQueue.registerHandler('scraping', JobHandlers.handleScraping);
-JobQueue.registerHandler('cache_warmup', JobHandlers.handleCacheWarmup);
-JobQueue.registerHandler('analytics', JobHandlers.handleAnalytics);
-JobQueue.registerHandler('notification', JobHandlers.handleNotification);
-JobQueue.registerHandler('cleanup', JobHandlers.handleCleanup);
-JobQueue.registerHandler('export', JobHandlers.handleExport);
+// Register reliable job handlers
+RobustJobQueue.registerHandler('scraping', ReliableJobHandlers.handleScraping);
+RobustJobQueue.registerHandler('cache_warmup', ReliableJobHandlers.handleCacheWarmup);
+RobustJobQueue.registerHandler('analytics', ReliableJobHandlers.handleAnalytics);
+RobustJobQueue.registerHandler('notification', ReliableJobHandlers.handleNotification);
+RobustJobQueue.registerHandler('cleanup', ReliableJobHandlers.handleCleanup);
 
-// Start job processing
-JobQueue.startProcessing({ concurrency: 3, types: [] });
+// Start robust job processing
+RobustJobQueue.startProcessing();
 
 // Start cron scheduler
 CronScheduler.start();
@@ -168,7 +167,7 @@ app.use('/api/security', securityRoutes);
 app.use('/api/database', databaseRoutes);
 app.use('/api/websocket', websocketRoutes);
 app.use('/api/quota', quotaRoutes);
-app.use('/api/jobs', jobsRoutes);
+app.use('/api/job-monitoring', jobMonitoringRoutes);
 app.use('/api/monitoring', monitoringRoutes);
 
 // API documentation endpoint
