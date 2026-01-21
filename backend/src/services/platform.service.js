@@ -6,6 +6,8 @@ import { scrapeGitHub } from './scraping/github.scraper.js';
 import { fetchSkillRackStats } from './scraping/skillrack.scraper.js';
 import { normalizeCodeforces } from './normalization/codeforces.normalizer.js';
 import { normalizeCodeChef } from './normalization/codechef.normalizer.js';
+import { scrapeHackerRank } from './scraping/hackerrank.scraper.js';
+import { normalizeHackerRank } from './normalization/hackerrank.normalizer.js';
 import { PLATFORMS, MESSAGES } from '../constants/app.constants.js';
 import { AppError, ERROR_CODES } from '../utils/appError.js';
 import redis from '../config/redis.js';
@@ -28,7 +30,7 @@ class PlatformService {
    */
   async fetchLeetCodeData(username, userId = null) {
     const cacheKey = `platform:${PLATFORMS.LEETCODE}:${username}`;
-    
+
     try {
       const cached = await redis.get(cacheKey);
       if (cached) {
@@ -46,9 +48,8 @@ class PlatformService {
         username,
         ...scraperResult.data,
         fromCache: scraperResult.fromCache,
-        fromFallback: scraperResult.fromFallback
+        fromFallback: scraperResult.fromFallback,
       };
-      
       // Only cache if not from fallback
       if (!scraperResult.fromFallback) {
         try {
@@ -57,7 +58,6 @@ class PlatformService {
           console.warn('Cache write failed for LeetCode:', cacheError.message);
         }
       }
-      
       if (userId) {
         try {
           DataChangeEmitter.emitPlatformUpdate(PLATFORMS.LEETCODE, username, result, userId);
@@ -65,7 +65,7 @@ class PlatformService {
           console.warn('Real-time update failed for LeetCode:', emitError.message);
         }
       }
-      
+
       return result;
     } catch (error) {
       throw new AppError(
@@ -81,7 +81,7 @@ class PlatformService {
    */
   async fetchCodeforcesData(username, userId = null) {
     const cacheKey = `platform:${PLATFORMS.CODEFORCES}:${username}`;
-    
+
     try {
       const cached = await redis.get(cacheKey);
       if (cached) {
@@ -95,19 +95,19 @@ class PlatformService {
     try {
       const rawData = await fetchCodeforcesStats(username);
       const normalizedData = normalizeCodeforces({ ...rawData, username });
-      
+
       const result = {
         platform: PLATFORMS.CODEFORCES,
         username,
         ...normalizedData,
       };
-      
+
       try {
         await redis.set(cacheKey, JSON.stringify(result), config.CACHE_PLATFORM_TTL);
       } catch (cacheError) {
         console.warn('Cache write failed for Codeforces:', cacheError.message);
       }
-      
+
       if (userId) {
         try {
           DataChangeEmitter.emitPlatformUpdate(PLATFORMS.CODEFORCES, username, result, userId);
@@ -115,7 +115,7 @@ class PlatformService {
           console.warn('Real-time update failed for Codeforces:', emitError.message);
         }
       }
-      
+
       return result;
     } catch (error) {
       throw new AppError(
@@ -131,7 +131,7 @@ class PlatformService {
    */
   async fetchCodeChefData(username, userId = null) {
     const cacheKey = `platform:${PLATFORMS.CODECHEF}:${username}`;
-    
+
     try {
       const cached = await redis.get(cacheKey);
       if (cached) {
@@ -145,19 +145,19 @@ class PlatformService {
     try {
       const rawData = await fetchCodeChefStats(username);
       const normalizedData = normalizeCodeChef({ ...rawData, username });
-      
+
       const result = {
         platform: PLATFORMS.CODECHEF,
         username,
         ...normalizedData,
       };
-      
+
       try {
         await redis.set(cacheKey, JSON.stringify(result), config.CACHE_PLATFORM_TTL);
       } catch (cacheError) {
         console.warn('Cache write failed for CodeChef:', cacheError.message);
       }
-      
+
       if (userId) {
         try {
           DataChangeEmitter.emitPlatformUpdate(PLATFORMS.CODECHEF, username, result, userId);
@@ -165,7 +165,7 @@ class PlatformService {
           console.warn('Real-time update failed for CodeChef:', emitError.message);
         }
       }
-      
+
       return result;
     } catch (error) {
       throw new AppError(
@@ -181,7 +181,7 @@ class PlatformService {
    */
   async fetchAtCoderData(username, userId = null) {
     const cacheKey = `platform:${PLATFORMS.ATCODER}:${username}`;
-    
+
     const cached = await redis.get(cacheKey);
     if (cached) {
       const data = JSON.parse(cached);
@@ -195,20 +195,16 @@ class PlatformService {
         username,
         ...data,
       };
-      
+
       await redis.set(cacheKey, JSON.stringify(result), config.CACHE_PLATFORM_TTL);
-      
+
       if (userId) {
         DataChangeEmitter.emitPlatformUpdate(PLATFORMS.ATCODER, username, result, userId);
       }
-      
+
       return result;
     } catch (error) {
-      throw new AppError(
-        `${MESSAGES.SCRAPING_FAILED}: AtCoder`,
-        500,
-        ERROR_CODES.SCRAPING_ERROR
-      );
+      throw new AppError(`${MESSAGES.SCRAPING_FAILED}: AtCoder`, 500, ERROR_CODES.SCRAPING_ERROR);
     }
   }
 
@@ -217,7 +213,7 @@ class PlatformService {
    */
   async fetchGitHubData(username, userId = null) {
     const cacheKey = `platform:${PLATFORMS.GITHUB}:${username}`;
-    
+
     const cached = await redis.get(cacheKey);
     if (cached) {
       const data = JSON.parse(cached);
@@ -231,20 +227,16 @@ class PlatformService {
         username,
         ...data,
       };
-      
+
       await redis.set(cacheKey, JSON.stringify(result), config.CACHE_PLATFORM_TTL);
-      
+
       if (userId) {
         DataChangeEmitter.emitPlatformUpdate(PLATFORMS.GITHUB, username, result, userId);
       }
-      
+
       return result;
     } catch (error) {
-      throw new AppError(
-        `${MESSAGES.SCRAPING_FAILED}: GitHub`,
-        500,
-        ERROR_CODES.SCRAPING_ERROR
-      );
+      throw new AppError(`${MESSAGES.SCRAPING_FAILED}: GitHub`, 500, ERROR_CODES.SCRAPING_ERROR);
     }
   }
 
@@ -253,7 +245,7 @@ class PlatformService {
    */
   async fetchSkillRackData(username, userId = null) {
     const cacheKey = `platform:${PLATFORMS.SKILLRACK}:${username}`;
-    
+
     const cached = await redis.get(cacheKey);
     if (cached) {
       const data = JSON.parse(cached);
@@ -267,17 +259,70 @@ class PlatformService {
         username,
         ...data,
       };
-      
+
       await redis.set(cacheKey, JSON.stringify(result), config.CACHE_PLATFORM_TTL);
-      
+
       if (userId) {
         DataChangeEmitter.emitPlatformUpdate(PLATFORMS.SKILLRACK, username, result, userId);
       }
-      
+
+      return result;
+    } catch (error) {
+      throw new AppError(`${MESSAGES.SCRAPING_FAILED}: SkillRack`, 500, ERROR_CODES.SCRAPING_ERROR);
+    }
+  }
+
+  /**
+   * Fetch user data from HackerRank with caching and real-time updates
+   */
+  async fetchHackerRankData(username, userId = null) {
+    const cacheKey = `platform:${PLATFORMS.HACKERRANK || 'hackerrank'}:${username}`;
+
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        const data = JSON.parse(cached);
+        return { ...data, fromCache: true };
+      }
+    } catch (cacheError) {
+      console.warn('Cache read failed for HackerRank:', cacheError.message);
+    }
+
+    try {
+      const rawData = await scrapeHackerRank(username);
+      // normalizeHackerRank might be needed if rawData isn't perfect, but let's assume rawData is what we need or check import.
+      // Line 10 imports normalizeHackerRank.
+      const normalizedData = normalizeHackerRank({ ...rawData, username });
+
+      const result = {
+        platform: PLATFORMS.HACKERRANK || 'hackerrank',
+        username,
+        ...normalizedData,
+      };
+
+      try {
+        await redis.set(cacheKey, JSON.stringify(result), config.CACHE_PLATFORM_TTL);
+      } catch (cacheError) {
+        console.warn('Cache write failed for HackerRank:', cacheError.message);
+      }
+
+      if (userId) {
+        try {
+          DataChangeEmitter.emitPlatformUpdate(
+            PLATFORMS.HACKERRANK || 'hackerrank',
+            username,
+            result,
+            userId
+          );
+        } catch (emitError) {
+          console.warn('Real-time update failed for HackerRank:', emitError.message);
+        }
+      }
+
       return result;
     } catch (error) {
       throw new AppError(
-        `${MESSAGES.SCRAPING_FAILED}: SkillRack`,
+        `${MESSAGES.SCRAPING_FAILED}: HackerRank - ${error.message}`,
         500,
         ERROR_CODES.SCRAPING_ERROR
       );
@@ -300,7 +345,7 @@ class PlatformService {
       const cacheKey = `platform:${platform}:${username}`;
       return redis.del(cacheKey);
     });
-    
+
     await Promise.all(promises);
   }
 
@@ -331,8 +376,63 @@ class PlatformService {
           platform,
           problemsGained,
           totalProblems: newCount,
-          username: newData.username
+          username: newData.username,
         }
+      );
+    }
+  }
+
+  /**
+   * Fetch user data from HackerRank with caching
+   */
+  async fetchHackerRankData(username, userId = null) {
+    const cacheKey = `platform:hackerrank:${username}`;
+
+    try {
+      const cached = await AdvancedCacheManager.get(cacheKey);
+      if (cached) {
+        return { ...cached, fromCache: true };
+      }
+    } catch (cacheError) {
+      console.warn('Cache read failed for HackerRank:', cacheError.message);
+    }
+
+    try {
+      const rawData = await scrapeHackerRank(username);
+      const normalizedData = normalizeHackerRank(rawData);
+
+      const result = {
+        platform: 'hackerrank',
+        username,
+        ...normalizedData,
+      };
+
+      try {
+        await AdvancedCacheManager.set(cacheKey, result, config.CACHE_PLATFORM_TTL, {
+          tags: ['platform', 'hackerrank', username],
+        });
+      } catch (cacheError) {
+        console.warn('Cache write failed for HackerRank:', cacheError.message);
+      }
+
+      if (userId) {
+        try {
+          DataChangeEmitter.emitPlatformUpdate('hackerrank', username, result, userId);
+        } catch (emitError) {
+          console.warn('Real-time update failed for HackerRank:', emitError.message);
+        }
+      }
+
+      return result;
+    } catch (error) {
+      // Propagate specific errors like "User not found"
+      if (error.message && error.message.includes('User not found')) {
+        throw new AppError(error.message, 404, ERROR_CODES.NOT_FOUND);
+      }
+      throw new AppError(
+        `${MESSAGES.SCRAPING_FAILED}: HackerRank - ${error.message}`,
+        500,
+        ERROR_CODES.SCRAPING_ERROR
       );
     }
   }

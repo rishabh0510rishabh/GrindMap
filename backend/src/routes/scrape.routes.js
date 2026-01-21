@@ -98,6 +98,20 @@ router.get(
 );
 
 /**
+ * @route   GET /api/scrape/hackerrank/:username
+ * @desc    Get HackerRank user statistics
+ * @access  Public (rate limited + cached + audited)
+ */
+router.get(
+  '/hackerrank/:username',
+  scrapingLimiter,
+  validateUsername,
+  auditLogger('FETCH_HACKERRANK_STATS'),
+  platformCache, // 15 minutes cache
+  ScrapeController.getHackerRankStats
+);
+
+/**
  * @route   GET /api/scrape/platforms
  * @desc    Get list of supported platforms
  * @access  Public (cached)

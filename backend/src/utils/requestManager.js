@@ -9,11 +9,11 @@ class RequestManager {
   async makeRequest(config) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), config.timeout || this.defaultTimeout);
-    
+
     const requestConfig = {
       ...config,
       signal: controller.signal,
-      timeout: config.timeout || this.defaultTimeout
+      timeout: config.timeout || this.defaultTimeout,
     };
 
     this.activeRequests.add(controller);
