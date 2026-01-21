@@ -1,398 +1,38 @@
-import Analytics from '../models/analytics.model.js';
-import mongoose from 'mongoose';
-import redis from '../config/redis.js';
-import Logger from '../utils/logger.js';
+import ActivityLog from "../models/activityLog.model.js";
+import mongoose from "mongoose";
 
 class AnalyticsService {
   /**
-   * Get user progress trends with caching
+   * Get daily streak (current and longest)
    */
-  async getUserTrends(userId, days = 30) {
-    const cacheKey = `analytics:trends:${userId}:${days}`;
-    
-    // Try cache first
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
+  async getDailyStreak(userId) {
+    const activities = await ActivityLog.find({ userId })
+      .sort({ date: -1 })
+      .select("date")
+      .lean();
+
+    if (!activities.length) {
+      return { currentStreak: 0, longestStreak: 0, lastActiveDate: null };
     }
 
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    const pipeline = [
-      {
-        $match: {
-          userId: new mongoose.Types.ObjectId(userId),
-          date: { $gte: startDate }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            date: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
-            platform: "$platform"
-          },
-          totalProblems: { $sum: "$metrics.problemsSolved" },
-          dailyChange: { $sum: "$dailyChange.problemsSolved" },
-          rating: { $avg: "$metrics.rating" },
-          submissions: { $sum: "$metrics.submissions" }
-        }
-      },
-      {
-        $group: {
-          _id: "$_id.date",
-          platforms: {
-            $push: {
-              platform: "$_id.platform",
-              problems: "$totalProblems",
-              change: "$dailyChange",
-              rating: "$rating",
-              submissions: "$submissions"
-            }
-          },
-          totalProblems: { $sum: "$totalProblems" },
-          totalChange: { $sum: "$dailyChange" }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ];
-
-    const trends = await Analytics.aggregate(pipeline);
-    
-    // Calculate moving averages
-    const result = this.calculateMovingAverages(trends, 7);
-    
-    // Cache for 15 minutes
-    await redis.set(cacheKey, JSON.stringify(result), 900);
-    
-    return result;
-  }
-
-  /**
-   * Get platform comparison analytics
-   */
-  async getPlatformComparison(userId, days = 30) {
-    const cacheKey = `analytics:comparison:${userId}:${days}`;
-    
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
-    }
-
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    const pipeline = [
-      {
-        $match: {
-          userId: new mongoose.Types.ObjectId(userId),
-          date: { $gte: startDate }
-        }
-      },
-      {
-        $group: {
-          _id: "$platform",
-          totalProblems: { $sum: "$metrics.problemsSolved" },
-          avgRating: { $avg: "$metrics.rating" },
-          totalSubmissions: { $sum: "$metrics.submissions" },
-          avgAcceptanceRate: { $avg: "$metrics.acceptanceRate" },
-          easyCount: { $sum: "$metrics.easyCount" },
-          mediumCount: { $sum: "$metrics.mediumCount" },
-          hardCount: { $sum: "$metrics.hardCount" },
-          growthRate: {
-            $avg: {
-              $cond: [
-                { $gt: ["$dailyChange.problemsSolved", 0] },
-                "$dailyChange.problemsSolved",
-                0
-              ]
-            }
-          }
-        }
-      },
-      {
-        $addFields: {
-          platform: "$_id",
-          difficultyDistribution: {
-            easy: "$easyCount",
-            medium: "$mediumCount",
-            hard: "$hardCount"
-          }
-        }
-      },
-      { $sort: { totalProblems: -1 } }
-    ];
-
-    const comparison = await Analytics.aggregate(pipeline);
-    
-    // Cache for 15 minutes
-    await redis.set(cacheKey, JSON.stringify(comparison), 900);
-    
-    return comparison;
-  }
-
-  /**
-   * Get performance metrics with growth rates
-   */
-  async getPerformanceMetrics(userId, days = 30) {
-    const cacheKey = `analytics:performance:${userId}:${days}`;
-    
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
-    }
-
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    const pipeline = [
-      {
-        $match: {
-          userId: new mongoose.Types.ObjectId(userId),
-          date: { $gte: startDate }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          totalProblems: { $sum: "$metrics.problemsSolved" },
-          avgDailyProblems: { $avg: "$dailyChange.problemsSolved" },
-          maxDailyProblems: { $max: "$dailyChange.problemsSolved" },
-          totalSubmissions: { $sum: "$metrics.submissions" },
-          avgAcceptanceRate: { $avg: "$metrics.acceptanceRate" },
-          activeDays: {
-            $sum: {
-              $cond: [{ $gt: ["$dailyChange.problemsSolved", 0] }, 1, 0]
-            }
-          },
-          consistencyScore: {
-            $avg: {
-              $cond: [
-                { $gt: ["$dailyChange.problemsSolved", 0] },
-                1,
-                0
-              ]
-            }
-          }
-        }
-      },
-      {
-        $addFields: {
-          problemsPerDay: { $divide: ["$totalProblems", days] },
-          activityRate: { $divide: ["$activeDays", days] }
-        }
-      }
-    ];
-
-    const metrics = await Analytics.aggregate(pipeline);
-    const result = metrics[0] || {};
-    
-    // Calculate growth rate
-    result.growthRate = await this.calculateGrowthRate(userId, days);
-    
-    // Cache for 15 minutes
-    await redis.set(cacheKey, JSON.stringify(result), 900);
-    
-    return result;
-  }
-
-  /**
-   * Get streak analytics
-   */
-  async getStreakAnalytics(userId) {
-    const cacheKey = `analytics:streaks:${userId}`;
-    
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
-    }
-
-    const pipeline = [
-      {
-        $match: {
-          userId: new mongoose.Types.ObjectId(userId),
-          "dailyChange.problemsSolved": { $gt: 0 }
-        }
-      },
-      {
-        $sort: { date: -1 }
-      },
-      {
-        $group: {
-          _id: null,
-          dates: { $push: "$date" },
-          totalActiveDays: { $sum: 1 }
-        }
-      }
-    ];
-
-    const data = await Analytics.aggregate(pipeline);
-    
-    if (!data[0]) {
-      return { currentStreak: 0, longestStreak: 0, totalActiveDays: 0 };
-    }
-
-    const dates = data[0].dates;
-    const streaks = this.calculateStreaks(dates);
-    
-    const result = {
-      ...streaks,
-      totalActiveDays: data[0].totalActiveDays
-    };
-    
-    // Cache for 15 minutes
-    await redis.set(cacheKey, JSON.stringify(result), 900);
-    
-    return result;
-  }
-
-  /**
-   * Get global leaderboard
-   */
-  async getGlobalLeaderboard(platform = null, limit = 100) {
-    const cacheKey = `analytics:leaderboard:${platform || 'all'}:${limit}`;
-    
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
-    }
-
-    const matchStage = platform 
-      ? { platform, date: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }
-      : { date: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } };
-
-    const pipeline = [
-      { $match: matchStage },
-      {
-        $group: {
-          _id: "$userId",
-          totalProblems: { $sum: "$metrics.problemsSolved" },
-          avgRating: { $avg: "$metrics.rating" },
-          platforms: { $addToSet: "$platform" },
-          recentActivity: { $sum: "$dailyChange.problemsSolved" }
-        }
-      },
-      {
-        $lookup: {
-          from: 'users',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'user'
-        }
-      },
-      {
-        $addFields: {
-          userName: { $arrayElemAt: ['$user.name', 0] },
-          userEmail: { $arrayElemAt: ['$user.email', 0] }
-        }
-      },
-      { $sort: { totalProblems: -1, avgRating: -1 } },
-      { $limit: limit },
-      {
-        $project: {
-          userId: "$_id",
-          userName: 1,
-          totalProblems: 1,
-          avgRating: 1,
-          platforms: 1,
-          recentActivity: 1
-        }
-      }
-    ];
-
-    const leaderboard = await Analytics.aggregate(pipeline);
-    
-    // Cache for 15 minutes
-    await redis.set(cacheKey, JSON.stringify(leaderboard), 900);
-    
-    return leaderboard;
-  }
-
-  /**
-   * Calculate moving averages
-   */
-  calculateMovingAverages(data, window = 7) {
-    return data.map((item, index) => {
-      const start = Math.max(0, index - window + 1);
-      const subset = data.slice(start, index + 1);
-      
-      const avgProblems = subset.reduce((sum, d) => sum + d.totalProblems, 0) / subset.length;
-      const avgChange = subset.reduce((sum, d) => sum + d.totalChange, 0) / subset.length;
-      
-      return {
-        ...item,
-        movingAverage: {
-          problems: Math.round(avgProblems * 100) / 100,
-          change: Math.round(avgChange * 100) / 100
-        }
-      };
-    });
-  }
-
-  /**
-   * Calculate growth rate
-   */
-  async calculateGrowthRate(userId, days) {
-    const midPoint = Math.floor(days / 2);
-    const firstHalf = new Date();
-    firstHalf.setDate(firstHalf.getDate() - days);
-    const secondHalf = new Date();
-    secondHalf.setDate(secondHalf.getDate() - midPoint);
-
-    const [firstPeriod, secondPeriod] = await Promise.all([
-      Analytics.aggregate([
-        {
-          $match: {
-            userId: new mongoose.Types.ObjectId(userId),
-            date: { $gte: firstHalf, $lt: secondHalf }
-          }
-        },
-        { $group: { _id: null, total: { $sum: "$metrics.problemsSolved" } } }
-      ]),
-      Analytics.aggregate([
-        {
-          $match: {
-            userId: new mongoose.Types.ObjectId(userId),
-            date: { $gte: secondHalf }
-          }
-        },
-        { $group: { _id: null, total: { $sum: "$metrics.problemsSolved" } } }
-      ])
-    ]);
-
-    const first = firstPeriod[0]?.total || 0;
-    const second = secondPeriod[0]?.total || 0;
-    
-    return first > 0 ? ((second - first) / first) * 100 : 0;
-  }
-
-  /**
-   * Calculate streaks from dates
-   */
-  calculateStreaks(dates) {
-    if (!dates.length) return { currentStreak: 0, longestStreak: 0 };
+    // Get unique dates
+    const uniqueDates = [...new Set(
+      activities.map(a => new Date(a.date).toISOString().split("T")[0])
+    )].sort((a, b) => new Date(b) - new Date(a));
 
     let currentStreak = 0;
     let longestStreak = 0;
     let tempStreak = 1;
 
-    // Sort dates in descending order
-    dates.sort((a, b) => new Date(b) - new Date(a));
+    const today = new Date().toISOString().split("T")[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
 
-    // Check current streak
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    if (this.isSameDay(dates[0], today) || this.isSameDay(dates[0], yesterday)) {
+    // Calculate current streak
+    if (uniqueDates[0] === today || uniqueDates[0] === yesterday) {
       currentStreak = 1;
-      
-      for (let i = 1; i < dates.length; i++) {
-        const prevDate = new Date(dates[i - 1]);
-        const currDate = new Date(dates[i]);
-        const diffDays = Math.floor((prevDate - currDate) / (1000 * 60 * 60 * 24));
-        
-        if (diffDays === 1) {
+      for (let i = 1; i < uniqueDates.length; i++) {
+        const diff = (new Date(uniqueDates[i - 1]) - new Date(uniqueDates[i])) / 86400000;
+        if (diff === 1) {
           currentStreak++;
         } else {
           break;
@@ -401,91 +41,247 @@ class AnalyticsService {
     }
 
     // Calculate longest streak
-    for (let i = 1; i < dates.length; i++) {
-      const prevDate = new Date(dates[i - 1]);
-      const currDate = new Date(dates[i]);
-      const diffDays = Math.floor((prevDate - currDate) / (1000 * 60 * 60 * 24));
-      
-      if (diffDays === 1) {
+    for (let i = 1; i < uniqueDates.length; i++) {
+      const diff = (new Date(uniqueDates[i - 1]) - new Date(uniqueDates[i])) / 86400000;
+      if (diff === 1) {
         tempStreak++;
       } else {
         longestStreak = Math.max(longestStreak, tempStreak);
         tempStreak = 1;
       }
     }
-    
-    longestStreak = Math.max(longestStreak, tempStreak);
+    longestStreak = Math.max(longestStreak, tempStreak, currentStreak);
 
-    return { currentStreak, longestStreak };
+    return {
+      currentStreak,
+      longestStreak,
+      lastActiveDate: uniqueDates[0],
+    };
   }
 
   /**
-   * Check if two dates are the same day
+   * Get weekly progress (last 4 weeks)
    */
-  isSameDay(date1, date2) {
-    const d1 = new Date(date1);
-    const d2 = new Date(date2);
-    return d1.getFullYear() === d2.getFullYear() &&
-           d1.getMonth() === d2.getMonth() &&
-           d1.getDate() === d2.getDate();
+  async getWeeklyProgress(userId) {
+    const fourWeeksAgo = new Date(Date.now() - 28 * 86400000);
+
+    const result = await ActivityLog.aggregate([
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(userId),
+          date: { $gte: fourWeeksAgo },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            week: { $isoWeek: "$date" },
+            year: { $isoWeekYear: "$date" },
+          },
+          totalProblems: { $sum: "$count" },
+          platforms: { $addToSet: "$platform" },
+        },
+      },
+      { $sort: { "_id.year": -1, "_id.week": -1 } },
+      { $limit: 4 },
+    ]);
+
+    return result.map((r) => ({
+      week: r._id.week,
+      year: r._id.year,
+      totalProblems: r.totalProblems,
+      platformsActive: r.platforms.length,
+    }));
   }
 
   /**
-   * Record analytics data
+   * Get platform distribution
    */
-  async recordAnalytics(userId, platform, metrics) {
+  async getPlatformDistribution(userId) {
+    const result = await ActivityLog.aggregate([
+      { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+      {
+        $group: {
+          _id: "$platform",
+          count: { $sum: "$count" },
+        },
+      },
+      { $sort: { count: -1 } },
+    ]);
+
+    const total = result.reduce((sum, r) => sum + r.count, 0);
+
+    return result.map((r) => ({
+      platform: r._id,
+      count: r.count,
+      percentage: total > 0 ? Math.round((r.count / total) * 100) : 0,
+    }));
+  }
+
+  /**
+   * Calculate consistency score (0-100)
+   */
+  async getConsistencyScore(userId) {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000);
+
+    const activities = await ActivityLog.find({
+      userId,
+      date: { $gte: thirtyDaysAgo },
+    }).select("date").lean();
+
+    const uniqueDays = new Set(
+      activities.map((a) => new Date(a.date).toISOString().split("T")[0])
+    );
+
+    const activeDays = uniqueDays.size;
+    const score = Math.round((activeDays / 30) * 100);
+
+    return {
+      score,
+      activeDays,
+      totalDays: 30,
+      rating: score >= 80 ? "Excellent" : score >= 60 ? "Good" : score >= 40 ? "Fair" : "Needs Improvement",
+    };
+  }
+
+  /**
+   * Get peak coding hours
+   */
+  async getPeakHours(userId) {
+    const result = await ActivityLog.aggregate([
+      { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+      {
+        $group: {
+          _id: { $hour: "$date" },
+          count: { $sum: "$count" },
+        },
+      },
+      { $sort: { count: -1 } },
+    ]);
+
+    const hourLabels = result.map((r) => ({
+      hour: r._id,
+      label: `${r._id}:00 - ${r._id + 1}:00`,
+      count: r.count,
+    }));
+
+    return {
+      peakHour: hourLabels[0] || null,
+      distribution: hourLabels,
+    };
+  }
+
+  /**
+   * Get heatmap data (last 365 days)
+   */
+  async getHeatmapData(userId) {
+    const oneYearAgo = new Date(Date.now() - 365 * 86400000);
+
+    const result = await ActivityLog.aggregate([
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(userId),
+          date: { $gte: oneYearAgo },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$date" },
+          },
+          count: { $sum: "$count" },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    return result.map((r) => ({
+      date: r._id,
+      count: r.count,
+    }));
+  }
+
+  /**
+   * Get trends (weekly/monthly comparison)
+   */
+  async getTrends(userId) {
+    const now = new Date();
+    const thisWeekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+    const lastWeekStart = new Date(thisWeekStart - 7 * 86400000);
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    const [thisWeek, lastWeek, thisMonth, lastMonth] = await Promise.all([
+      this.getCountInRange(userId, thisWeekStart, new Date()),
+      this.getCountInRange(userId, lastWeekStart, thisWeekStart),
+      this.getCountInRange(userId, thisMonthStart, new Date()),
+      this.getCountInRange(userId, lastMonthStart, thisMonthStart),
+    ]);
+
+    return {
+      weekly: {
+        current: thisWeek,
+        previous: lastWeek,
+        change: lastWeek > 0 ? Math.round(((thisWeek - lastWeek) / lastWeek) * 100) : 100,
+      },
+      monthly: {
+        current: thisMonth,
+        previous: lastMonth,
+        change: lastMonth > 0 ? Math.round(((thisMonth - lastMonth) / lastMonth) * 100) : 100,
+      },
+    };
+  }
+
+  async getCountInRange(userId, start, end) {
+    const result = await ActivityLog.aggregate([
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(userId),
+          date: { $gte: start, $lt: end },
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$count" } } },
+    ]);
+    return result[0]?.total || 0;
+  }
+
+  /**
+   * Get overview dashboard
+   */
+  async getOverview(userId) {
+    const [streak, consistency, distribution, trends, peakHours] = await Promise.all([
+      this.getDailyStreak(userId),
+      this.getConsistencyScore(userId),
+      this.getPlatformDistribution(userId),
+      this.getTrends(userId),
+      this.getPeakHours(userId),
+    ]);
+
+    const totalProblems = distribution.reduce((sum, d) => sum + d.count, 0);
+
+    return {
+      totalProblems,
+      streak,
+      consistency,
+      topPlatform: distribution[0] || null,
+      trends,
+      peakHour: peakHours.peakHour,
+    };
+  }
+
+  /**
+   * Log activity (used by scraping service)
+   */
+  async logActivity(userId, platform, action, count = 1, difficulty = "unknown", metadata = {}) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const existing = await Analytics.findOne({
-      userId,
-      platform,
-      date: today
-    });
-
-    if (existing) {
-      // Calculate daily change
-      const dailyChange = {
-        problemsSolved: metrics.problemsSolved - existing.metrics.problemsSolved,
-        rating: metrics.rating - existing.metrics.rating,
-        submissions: metrics.submissions - existing.metrics.submissions
-      };
-
-      existing.metrics = metrics;
-      existing.dailyChange = dailyChange;
-      await existing.save();
-    } else {
-      await Analytics.create({
-        userId,
-        platform,
-        date: today,
-        metrics,
-        dailyChange: {
-          problemsSolved: 0,
-          rating: 0,
-          submissions: 0
-        }
-      });
-    }
-
-    // Invalidate related caches
-    await this.invalidateUserCaches(userId);
-  }
-
-  /**
-   * Invalidate user-related caches
-   */
-  async invalidateUserCaches(userId) {
-    const patterns = [
-      `analytics:trends:${userId}:*`,
-      `analytics:comparison:${userId}:*`,
-      `analytics:performance:${userId}:*`,
-      `analytics:streaks:${userId}`
-    ];
-
-    for (const pattern of patterns) {
-      await redis.flushPattern(pattern);
-    }
+    // Upsert today's activity
+    await ActivityLog.findOneAndUpdate(
+      { userId, platform, action, date: today },
+      { $inc: { count }, $set: { difficulty, metadata } },
+      { upsert: true, new: true }
+    );
   }
 }
 

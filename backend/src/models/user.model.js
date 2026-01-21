@@ -4,34 +4,43 @@ import { SECURITY } from "../constants/app.constants.js";
 
 const userSchema = new mongoose.Schema(
   {
-    name: { 
-      type: String, 
+    name: {
+      type: String,
       required: [true, 'Name is required'],
       trim: true,
       minlength: [2, 'Name must be at least 2 characters'],
       maxlength: [50, 'Name cannot exceed 50 characters'],
     },
-    email: { 
-      type: String, 
-      required: [true, 'Email is required'], 
+    email: {
+      type: String,
+      required: [true, 'Email is required'],
       unique: true,
       lowercase: true,
       trim: true,
       match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please provide a valid email'],
     },
-    password: { 
-      type: String, 
+    password: {
+      type: String,
       required: [true, 'Password is required'],
       minlength: [8, 'Password must be at least 8 characters'],
       select: false, // Don't include password in queries by default
+    },
+    githubId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      select: false,
+    },
+    avatar: {
+      type: String,
     },
     role: {
       type: String,
       enum: ['user', 'admin', 'moderator'],
       default: 'user',
     },
-    bio: { 
-      type: String, 
+    bio: {
+      type: String,
       default: "",
       maxlength: [500, 'Bio cannot exceed 500 characters'],
     },
@@ -65,11 +74,15 @@ const userSchema = new mongoose.Schema(
       type: Date,
       select: false,
     },
+    friends: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    }],
   },
-  { 
+  {
     timestamps: true,
     toJSON: {
-      transform: function(doc, ret) {
+      transform: function (doc, ret) {
         delete ret.password;
         delete ret.loginAttempts;
         delete ret.lockUntil;
@@ -87,7 +100,7 @@ userSchema.index({ emailVerificationToken: 1 });
 userSchema.index({ passwordResetToken: 1 });
 
 // Virtual for account lock status
-userSchema.virtual('isLocked').get(function() {
+userSchema.virtual('isLocked').get(function () {
   return !!(this.lockUntil && this.lockUntil > Date.now());
 });
 
@@ -108,7 +121,7 @@ userSchema.pre("save", async function (next) {
 });
 
 // Method to compare password
-userSchema.methods.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   if (!this.password) {
     throw new Error('Password not available for comparison');
   }
@@ -116,14 +129,14 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 };
 
 // Method to increment login attempts (ATOMIC)
-userSchema.methods.incLoginAttempts = async function() {
+userSchema.methods.incLoginAttempts = async function () {
   const session = await mongoose.startSession();
-  
+
   try {
     return await session.withTransaction(async () => {
       // Re-fetch user with session lock
       const user = await mongoose.model('User').findById(this._id).session(session);
-      
+
       // Check if lock has expired
       if (user.lockUntil && user.lockUntil < Date.now()) {
         return await mongoose.model('User').findByIdAndUpdate(
@@ -135,14 +148,14 @@ userSchema.methods.incLoginAttempts = async function() {
           { session, new: true }
         );
       }
-      
+
       const updates = { $inc: { loginAttempts: 1 } };
-      
+
       // Lock account after max attempts
       if (user.loginAttempts + 1 >= SECURITY.MAX_LOGIN_ATTEMPTS) {
         updates.$set = { lockUntil: Date.now() + SECURITY.LOCKOUT_TIME };
       }
-      
+
       return await mongoose.model('User').findByIdAndUpdate(
         this._id,
         updates,
@@ -155,7 +168,7 @@ userSchema.methods.incLoginAttempts = async function() {
 };
 
 // Method to reset login attempts
-userSchema.methods.resetLoginAttempts = function() {
+userSchema.methods.resetLoginAttempts = function () {
   return this.updateOne({
     $unset: { loginAttempts: 1, lockUntil: 1 }
   });

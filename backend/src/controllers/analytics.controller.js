@@ -1,130 +1,86 @@
-import AnalyticsService from '../services/analytics.service.js';
-import { sendSuccess } from '../utils/response.helper.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
-import { AppError } from '../utils/appError.js';
+import AnalyticsService from "../services/analytics.service.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { sendSuccess } from "../utils/response.helper.js";
 
 class AnalyticsController {
   /**
-   * Get user progress trends
-   * @route GET /api/analytics/trends
+   * Get analytics overview
+   * GET /api/analytics/overview
+   */
+  getOverview = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const data = await AnalyticsService.getOverview(userId);
+    sendSuccess(res, data, "Analytics overview retrieved");
+  });
+
+  /**
+   * Get streak details
+   * GET /api/analytics/streak
+   */
+  getStreak = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const data = await AnalyticsService.getDailyStreak(userId);
+    sendSuccess(res, data, "Streak data retrieved");
+  });
+
+  /**
+   * Get heatmap data
+   * GET /api/analytics/heatmap
+   */
+  getHeatmap = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const data = await AnalyticsService.getHeatmapData(userId);
+    sendSuccess(res, data, "Heatmap data retrieved");
+  });
+
+  /**
+   * Get weekly/monthly trends
+   * GET /api/analytics/trends
    */
   getTrends = asyncHandler(async (req, res) => {
-    const { days = 30 } = req.query;
     const userId = req.user.id;
-
-    if (days < 1 || days > 365) {
-      throw new AppError('Days must be between 1 and 365', 400);
-    }
-
-    const trends = await AnalyticsService.getUserTrends(userId, parseInt(days));
-    sendSuccess(res, trends, 'Trends retrieved successfully');
+    const data = await AnalyticsService.getTrends(userId);
+    sendSuccess(res, data, "Trends data retrieved");
   });
 
   /**
-   * Get platform comparison
-   * @route GET /api/analytics/comparison
+   * Get weekly progress
+   * GET /api/analytics/weekly
    */
-  getComparison = asyncHandler(async (req, res) => {
-    const { days = 30 } = req.query;
+  getWeeklyProgress = asyncHandler(async (req, res) => {
     const userId = req.user.id;
-
-    const comparison = await AnalyticsService.getPlatformComparison(userId, parseInt(days));
-    sendSuccess(res, comparison, 'Platform comparison retrieved successfully');
+    const data = await AnalyticsService.getWeeklyProgress(userId);
+    sendSuccess(res, data, "Weekly progress retrieved");
   });
 
   /**
-   * Get performance metrics
-   * @route GET /api/analytics/performance
+   * Get platform distribution
+   * GET /api/analytics/platforms
    */
-  getPerformance = asyncHandler(async (req, res) => {
-    const { days = 30 } = req.query;
+  getPlatformDistribution = asyncHandler(async (req, res) => {
     const userId = req.user.id;
-
-    const performance = await AnalyticsService.getPerformanceMetrics(userId, parseInt(days));
-    sendSuccess(res, performance, 'Performance metrics retrieved successfully');
+    const data = await AnalyticsService.getPlatformDistribution(userId);
+    sendSuccess(res, data, "Platform distribution retrieved");
   });
 
   /**
-   * Get streak analytics
-   * @route GET /api/analytics/streaks
+   * Get consistency score
+   * GET /api/analytics/consistency
    */
-  getStreaks = asyncHandler(async (req, res) => {
+  getConsistency = asyncHandler(async (req, res) => {
     const userId = req.user.id;
-
-    const streaks = await AnalyticsService.getStreakAnalytics(userId);
-    sendSuccess(res, streaks, 'Streak analytics retrieved successfully');
+    const data = await AnalyticsService.getConsistencyScore(userId);
+    sendSuccess(res, data, "Consistency score retrieved");
   });
 
   /**
-   * Get global leaderboard
-   * @route GET /api/analytics/leaderboard
+   * Get peak hours
+   * GET /api/analytics/peak-hours
    */
-  getLeaderboard = asyncHandler(async (req, res) => {
-    const { platform, limit = 100 } = req.query;
-
-    if (limit < 1 || limit > 1000) {
-      throw new AppError('Limit must be between 1 and 1000', 400);
-    }
-
-    const leaderboard = await AnalyticsService.getGlobalLeaderboard(platform, parseInt(limit));
-    sendSuccess(res, leaderboard, 'Leaderboard retrieved successfully');
-  });
-
-  /**
-   * Get analytics summary
-   * @route GET /api/analytics/summary
-   */
-  getSummary = asyncHandler(async (req, res) => {
-    const { days = 30 } = req.query;
+  getPeakHours = asyncHandler(async (req, res) => {
     const userId = req.user.id;
-
-    const [trends, comparison, performance, streaks] = await Promise.all([
-      AnalyticsService.getUserTrends(userId, parseInt(days)),
-      AnalyticsService.getPlatformComparison(userId, parseInt(days)),
-      AnalyticsService.getPerformanceMetrics(userId, parseInt(days)),
-      AnalyticsService.getStreakAnalytics(userId)
-    ]);
-
-    const summary = {
-      trends: trends.slice(-7), // Last 7 days
-      topPlatforms: comparison.slice(0, 3),
-      performance,
-      streaks,
-      period: `${days} days`
-    };
-
-    sendSuccess(res, summary, 'Analytics summary retrieved successfully');
-  });
-
-  /**
-   * Get analytics for specific platform
-   * @route GET /api/analytics/platform/:platform
-   */
-  getPlatformAnalytics = asyncHandler(async (req, res) => {
-    const { platform } = req.params;
-    const { days = 30 } = req.query;
-    const userId = req.user.id;
-
-    // Get platform-specific trends
-    const trends = await AnalyticsService.getUserTrends(userId, parseInt(days));
-    const platformTrends = trends.map(day => ({
-      date: day._id,
-      data: day.platforms.find(p => p.platform === platform.toUpperCase()) || {}
-    })).filter(day => day.data.platform);
-
-    sendSuccess(res, platformTrends, `${platform} analytics retrieved successfully`);
-  });
-
-  /**
-   * Record analytics data (internal endpoint)
-   * @route POST /api/analytics/record
-   */
-  recordAnalytics = asyncHandler(async (req, res) => {
-    const { platform, metrics } = req.body;
-    const userId = req.user.id;
-
-    await AnalyticsService.recordAnalytics(userId, platform, metrics);
-    sendSuccess(res, null, 'Analytics recorded successfully');
+    const data = await AnalyticsService.getPeakHours(userId);
+    sendSuccess(res, data, "Peak hours retrieved");
   });
 }
 

@@ -17,13 +17,9 @@ export async function fetchCodeforcesStats(username) {
     
     Logger.debug(`Starting Codeforces scrape for user: ${validatedUsername}`);
     
-    const response = await RequestManager.makeRequest({
-      method: 'GET',
-      url: `https://codeforces.com/api/user.info?handles=${validatedUsername}`,
-      timeout: 10000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
+    const response = await codeforcesClient.get(`/api/user.info?handles=${validatedUsername}`, {
+      cacheTTL: 600, // 10 minutes cache
+      cacheKey: `codeforces:${validatedUsername}`
     });
     
     // Validate Codeforces API response format

@@ -2,7 +2,6 @@ import ApiClient from '../../utils/apiClient.js';
 import InputValidator from '../../utils/inputValidator.js';
 import ScraperErrorHandler from '../../utils/scraperErrorHandler.js';
 import Logger from '../../utils/logger.js';
-import RequestManager from '../../utils/requestManager.js';
 
 // Create GitHub API client with circuit breaker
 const githubClient = ApiClient.createGitHubClient();
@@ -17,14 +16,9 @@ export async function scrapeGitHub(username) {
     
     Logger.debug(`Starting GitHub scrape for user: ${validatedUsername}`);
     
-    const response = await RequestManager.makeRequest({
-      method: 'GET',
-      url: `https://api.github.com/users/${validatedUsername}/events/public`,
-      timeout: 8000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'application/vnd.github.v3+json'
-      }
+    const response = await githubClient.get(`/users/${validatedUsername}/events/public`, {
+      cacheTTL: 300, // 5 minutes cache
+      cacheKey: `github:${validatedUsername}`
     });
     
     const events = response.data;

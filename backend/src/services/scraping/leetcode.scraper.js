@@ -17,13 +17,9 @@ export async function scrapeLeetCode(username) {
     
     Logger.debug(`Starting LeetCode scrape for user: ${validatedUsername}`);
     
-    const response = await RequestManager.makeRequest({
-      method: 'GET',
-      url: `https://leetcode-stats.tashif.codes/${validatedUsername}`,
-      timeout: 8000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
+    const response = await leetcodeClient.get(`https://leetcode-stats.tashif.codes/${validatedUsername}`, {
+      cacheTTL: 300, // 5 minutes cache
+      cacheKey: `leetcode:${validatedUsername}`
     });
     
     // Validate API response

@@ -1,151 +1,66 @@
-import express from 'express';
-import AnalyticsController from '../controllers/analytics.controller.js';
-import { protect } from '../middlewares/auth.middleware.js';
-import { query, param, body } from 'express-validator';
+import express from "express";
+import AnalyticsController from "../controllers/analytics.controller.js";
+import { protect } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
+// All analytics routes require authentication
+router.use(protect);
+
+/**
+ * @route   GET /api/analytics/overview
+ * @desc    Get analytics dashboard overview
+ * @access  Private
+ */
+router.get("/overview", AnalyticsController.getOverview);
+
+/**
+ * @route   GET /api/analytics/streak
+ * @desc    Get streak details (current & longest)
+ * @access  Private
+ */
+router.get("/streak", AnalyticsController.getStreak);
+
+/**
+ * @route   GET /api/analytics/heatmap
+ * @desc    Get activity heatmap data (365 days)
+ * @access  Private
+ */
+router.get("/heatmap", AnalyticsController.getHeatmap);
+
 /**
  * @route   GET /api/analytics/trends
- * @desc    Get user progress trends with moving averages
+ * @desc    Get weekly/monthly trends
  * @access  Private
  */
-router.get(
-  '/trends',
-  protect,
-  [
-    query('days')
-      .optional()
-      .isInt({ min: 1, max: 365 })
-      .withMessage('Days must be between 1 and 365')
-  ],
-  AnalyticsController.getTrends
-);
+router.get("/trends", AnalyticsController.getTrends);
 
 /**
- * @route   GET /api/analytics/comparison
- * @desc    Get platform comparison analytics
+ * @route   GET /api/analytics/weekly
+ * @desc    Get weekly progress (last 4 weeks)
  * @access  Private
  */
-router.get(
-  '/comparison',
-  protect,
-  [
-    query('days')
-      .optional()
-      .isInt({ min: 1, max: 365 })
-      .withMessage('Days must be between 1 and 365')
-  ],
-  AnalyticsController.getComparison
-);
+router.get("/weekly", AnalyticsController.getWeeklyProgress);
 
 /**
- * @route   GET /api/analytics/performance
- * @desc    Get performance metrics and growth rates
+ * @route   GET /api/analytics/platforms
+ * @desc    Get platform distribution
  * @access  Private
  */
-router.get(
-  '/performance',
-  protect,
-  [
-    query('days')
-      .optional()
-      .isInt({ min: 1, max: 365 })
-      .withMessage('Days must be between 1 and 365')
-  ],
-  AnalyticsController.getPerformance
-);
+router.get("/platforms", AnalyticsController.getPlatformDistribution);
 
 /**
- * @route   GET /api/analytics/streaks
- * @desc    Get streak analytics (current and longest)
+ * @route   GET /api/analytics/consistency
+ * @desc    Get consistency score (0-100)
  * @access  Private
  */
-router.get('/streaks', protect, AnalyticsController.getStreaks);
+router.get("/consistency", AnalyticsController.getConsistency);
 
 /**
- * @route   GET /api/analytics/leaderboard
- * @desc    Get global leaderboard
+ * @route   GET /api/analytics/peak-hours
+ * @desc    Get peak coding hours
  * @access  Private
  */
-router.get(
-  '/leaderboard',
-  protect,
-  [
-    query('platform')
-      .optional()
-      .isIn(['LEETCODE', 'CODEFORCES', 'CODECHEF', 'ATCODER', 'GITHUB', 'SKILLRACK'])
-      .withMessage('Invalid platform'),
-    query('limit')
-      .optional()
-      .isInt({ min: 1, max: 1000 })
-      .withMessage('Limit must be between 1 and 1000')
-  ],
-  AnalyticsController.getLeaderboard
-);
-
-/**
- * @route   GET /api/analytics/summary
- * @desc    Get comprehensive analytics summary
- * @access  Private
- */
-router.get(
-  '/summary',
-  protect,
-  [
-    query('days')
-      .optional()
-      .isInt({ min: 1, max: 365 })
-      .withMessage('Days must be between 1 and 365')
-  ],
-  AnalyticsController.getSummary
-);
-
-/**
- * @route   GET /api/analytics/platform/:platform
- * @desc    Get analytics for specific platform
- * @access  Private
- */
-router.get(
-  '/platform/:platform',
-  protect,
-  [
-    param('platform')
-      .isIn(['leetcode', 'codeforces', 'codechef', 'atcoder', 'github', 'skillrack'])
-      .withMessage('Invalid platform'),
-    query('days')
-      .optional()
-      .isInt({ min: 1, max: 365 })
-      .withMessage('Days must be between 1 and 365')
-  ],
-  AnalyticsController.getPlatformAnalytics
-);
-
-/**
- * @route   POST /api/analytics/record
- * @desc    Record analytics data (internal use)
- * @access  Private
- */
-router.post(
-  '/record',
-  protect,
-  [
-    body('platform')
-      .isIn(['LEETCODE', 'CODEFORCES', 'CODECHEF', 'ATCODER', 'GITHUB', 'SKILLRACK'])
-      .withMessage('Invalid platform'),
-    body('metrics')
-      .isObject()
-      .withMessage('Metrics must be an object'),
-    body('metrics.problemsSolved')
-      .optional()
-      .isInt({ min: 0 })
-      .withMessage('Problems solved must be a non-negative integer'),
-    body('metrics.rating')
-      .optional()
-      .isNumeric()
-      .withMessage('Rating must be a number')
-  ],
-  AnalyticsController.recordAnalytics
-);
+router.get("/peak-hours", AnalyticsController.getPeakHours);
 
 export default router;

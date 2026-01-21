@@ -59,12 +59,12 @@ export async function fetchCodeChefStats(username) {
       let browser;
       
       try {
-        browser = await PuppeteerManager.createBrowser();
-        page = await PuppeteerManager.createPage(browser);
+        browser = await puppeteerPool.getBrowser();
+        page = await puppeteerPool.createPage(browser);
         
         await page.goto(`https://www.codechef.com/users/${validatedUsername}`, {
           waitUntil: 'networkidle2',
-          timeout: 15000
+          timeout: 20000
         });
         
         // Check if user exists
@@ -87,7 +87,7 @@ export async function fetchCodeChefStats(username) {
             };
           }),
           new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Page evaluation timeout')), 10000)
+            setTimeout(() => reject(new Error('Page evaluation timeout')), 15000)
           )
         ]);
         
@@ -99,10 +99,7 @@ export async function fetchCodeChefStats(username) {
         return InputValidator.sanitizeResponse(stats);
       } finally {
         if (page) {
-          await PuppeteerManager.closePage(page);
-        }
-        if (browser) {
-          await PuppeteerManager.closeBrowser(browser);
+          await puppeteerPool.closePage(page);
         }
       }
     };
