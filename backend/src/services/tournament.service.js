@@ -5,7 +5,6 @@ import { AppError } from "../utils/appError.js";
 import { HTTP_STATUS } from "../constants/app.constants.js";
 import crypto from "crypto";
 import mongoose from "mongoose";
-import IntegrityService from "./integrity.service.js";
 
 class TournamentService {
     /**
@@ -42,15 +41,6 @@ class TournamentService {
 
         if (tournament.status === "ended") {
             throw new AppError("Tournament has already ended", HTTP_STATUS.BAD_REQUEST);
-        }
-
-        // Check if user is banned from tournaments
-        const isBanned = await IntegrityService.isUserBannedFromTournaments(userId);
-        if (isBanned) {
-            throw new AppError(
-                "You are currently suspended from tournaments due to policy violations",
-                HTTP_STATUS.FORBIDDEN
-            );
         }
 
         const isMember = tournament.participants.some(
@@ -248,29 +238,17 @@ class TournamentService {
         }).lean();
 
         const scores = new Map();
-        const bannedUsers = new Set();
 
-        // Check for banned users
-        for (const p of tournament.participants) {
-            const isBanned = await IntegrityService.isUserBannedFromTournaments(p.userId._id);
-            if (isBanned) {
-                bannedUsers.add(p.userId._id.toString());
-                continue; // Don't initialize score for banned users
-            }
-
+        tournament.participants.forEach(p => {
             scores.set(p.userId._id.toString(), {
                 user: p.userId,
                 score: 0,
                 joinedAt: p.joinedAt
             });
-        }
+        });
 
         for (const log of logs) {
             const uid = log.userId.toString();
-            
-            // Skip banned users
-            if (bannedUsers.has(uid)) continue;
-            
             const entry = scores.get(uid);
             if (!entry) continue;
 
