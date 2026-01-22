@@ -6,7 +6,7 @@ import { advancedRateLimit, scrapingRateLimit } from '../middlewares/antiBypassR
 import { platformCache, userCache } from '../middlewares/cache.middleware.js';
 import { auditLogger } from '../middlewares/audit.middleware.js';
 import { enforceScrapingQuota } from '../middlewares/quota.middleware.js';
-
+import { scrapingLimiter } from '../middlewares/rateLimiter.middleware.js';
 const router = express.Router();
 
 // Apply input validation and sanitization to all username routes

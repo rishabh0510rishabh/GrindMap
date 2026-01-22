@@ -21,6 +21,7 @@ describe("Normalizers", () => {
         rating: 1500,
         maxRating: 1600,
         rank: "specialist",
+        totalSolved: 0,
       });
     });
 
@@ -38,6 +39,7 @@ describe("Normalizers", () => {
         rating: 0,
         maxRating: 0,
         rank: "unrated",
+        totalSolved: 0,
       });
     });
   });
@@ -58,7 +60,10 @@ describe("Normalizers", () => {
         platform: "codechef",
         username: "testuser",
         rating: 1800,
-        problemsSolved: 150,
+        problem_fully_solved: 150,
+        total_stars: 0,
+        global_rank: null,
+        country_rank: null,
       });
     });
 
@@ -74,7 +79,10 @@ describe("Normalizers", () => {
         platform: "codechef",
         username: "testuser",
         rating: 0,
-        problemsSolved: 0,
+        problem_fully_solved: 0,
+        total_stars: 0,
+        global_rank: null,
+        country_rank: null,
       });
     });
   });
