@@ -25,13 +25,26 @@ export async function scrapeLeetCode(username) {
           cacheKey: `leetcode:${validatedUsername}`
         });
       },
-      'LeetCode',
+      'LEETCODE',
       validatedUsername,
       { apiEndpoint: 'leetcode-stats.tashif.codes' }
     );
 
+    // Validate API response structure
+    if (!response.data || typeof response.data !== 'object') {
+      throw new Error('Invalid response from LeetCode API: response data is missing or not an object');
+    }
+
+    if (response.data.message === 'User not found') {
+      throw new Error('User not found on LeetCode');
+    }
+
+    if (response.data.totalSolved === undefined || response.data.totalQuestions === undefined) {
+      throw new Error('Invalid response from LeetCode API: required fields missing');
+    }
+
     // Validate API response
-    InputValidator.validateApiResponse(response.data, 'LeetCode', ['totalSolved', 'totalQuestions']);
+    InputValidator.validateApiResponse(response.data, 'LEETCODE', ['totalSolved', 'totalQuestions']);
 
     // Sanitize response data
     const sanitizedData = InputValidator.sanitizeResponse(response.data);
@@ -49,7 +62,7 @@ export async function scrapeLeetCode(username) {
 
     // Log performance metrics
     ScraperErrorHandler.logPerformanceMetrics(
-      'LeetCode',
+      'LEETCODE',
       validatedUsername,
       startTime,
       true,
@@ -60,7 +73,7 @@ export async function scrapeLeetCode(username) {
 
   } catch (error) {
     // Handle circuit breaker errors first
-    if (ScraperErrorHandler.handleCircuitBreakerError(error, 'LeetCode')) {
+    if (ScraperErrorHandler.handleCircuitBreakerError(error, 'LEETCODE')) {
       return;
     }
 
@@ -83,7 +96,7 @@ export async function scrapeLeetCode(username) {
 
         // Log performance metrics for fallback success
         ScraperErrorHandler.logPerformanceMetrics(
-          'LeetCode',
+          'LEETCODE',
           validatedUsername || username,
           startTime,
           true,
@@ -100,14 +113,14 @@ export async function scrapeLeetCode(username) {
 
     // Log performance metrics for failed requests
     ScraperErrorHandler.logPerformanceMetrics(
-      'LeetCode',
+      'LEETCODE',
       validatedUsername || username,
       startTime,
       false
     );
 
     // Handle and standardize the error
-    ScraperErrorHandler.handleScraperError(error, 'LeetCode', validatedUsername || username, {
+    ScraperErrorHandler.handleScraperError(error, 'LEETCODE', validatedUsername || username, {
       apiEndpoint: 'leetcode-stats.tashif.codes',
       circuitBreakerState: leetcodeClient.getCircuitBreakerState()
     });
