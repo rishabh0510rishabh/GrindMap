@@ -13,6 +13,7 @@ import { enhancedSecurityHeaders } from './middlewares/enhancedSecurity.middlewa
 import { requestLogger, securityMonitor } from './middlewares/logging.middleware.js';
 import { sanitizeInput } from './middlewares/validation.middleware.js';
 import { apiCompression } from './middlewares/compression.middleware.js';
+import { advancedRateLimit } from './middlewares/antiBypassRateLimit.middleware.js';
 import { correlationId } from './middlewares/correlationId.middleware.js';
 import { performanceMetrics } from './middlewares/performance.middleware.js';
 import {
@@ -52,13 +53,13 @@ import securityRoutes from './routes/security.routes.js';
 import databaseRoutes from './routes/database.routes.js';
 import websocketRoutes from './routes/websocket.routes.js';
 import quotaRoutes from './routes/quota.routes.js';
+import jobMonitoringRoutes from './routes/jobMonitoring.routes.js';
 import fileUploadRoutes from './routes/fileUpload.routes.js';
+
 import monitoringRoutes from './routes/monitoring.routes.js';
-import sprintRoutes from './routes/sprint.routes.js';
-
 // Import secure logger to prevent JWT exposure
-import './utils/secureLogger.js';
 
+import './utils/secureLogger.js';
 // Import constants
 import { HTTP_STATUS, ENVIRONMENTS } from './constants/app.constants.js';
 import Logger from './utils/logger.js';
