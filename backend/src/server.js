@@ -54,7 +54,7 @@ import websocketRoutes from './routes/websocket.routes.js';
 import quotaRoutes from './routes/quota.routes.js';
 import jobMonitoringRoutes from './routes/jobMonitoring.routes.js';
 import monitoringRoutes from './routes/monitoring.routes.js';
-import grindRoomRoutes from './routes/grindRoom.routes.js';
+import sprintRoutes from './routes/sprint.routes.js';
 
 // Import secure logger to prevent JWT exposure
 import './utils/secureLogger.js';
@@ -187,7 +187,7 @@ app.use('/api/websocket', websocketRoutes);
 app.use('/api/quota', quotaRoutes);
 app.use('/api/job-monitoring', jobMonitoringRoutes);
 app.use('/api/monitoring', monitoringRoutes);
-app.use('/api/rooms', grindRoomRoutes);
+app.use('/api/sprints', sprintRoutes);
 
 // API documentation endpoint
 app.get('/api', (req, res) => {
@@ -207,6 +207,7 @@ app.get('/api', (req, res) => {
       quota: '/api/quota',
       jobs: '/api/jobs',
       monitoring: '/api/monitoring',
+      sprints: '/api/sprints',
       health: '/health',
       database: '/api/database',
     },
