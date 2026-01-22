@@ -52,7 +52,7 @@ import securityRoutes from './routes/security.routes.js';
 import databaseRoutes from './routes/database.routes.js';
 import websocketRoutes from './routes/websocket.routes.js';
 import quotaRoutes from './routes/quota.routes.js';
-import jobMonitoringRoutes from './routes/jobMonitoring.routes.js';
+import fileUploadRoutes from './routes/fileUpload.routes.js';
 import monitoringRoutes from './routes/monitoring.routes.js';
 import sprintRoutes from './routes/sprint.routes.js';
 
@@ -185,6 +185,7 @@ app.use('/api/security', securityRoutes);
 app.use('/api/database', databaseRoutes);
 app.use('/api/websocket', websocketRoutes);
 app.use('/api/quota', quotaRoutes);
+app.use('/api/upload', fileUploadRoutes);
 app.use('/api/job-monitoring', jobMonitoringRoutes);
 app.use('/api/monitoring', monitoringRoutes);
 app.use('/api/sprints', sprintRoutes);

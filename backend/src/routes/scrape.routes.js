@@ -3,7 +3,7 @@ import ScrapeController from '../controllers/scrape.controller.js';
 import { validateUsername } from '../middlewares/validation.middleware.js';
 import { validateUsername as validateUsernameInput, sanitizeUsername } from '../middlewares/inputValidation.middleware.js';
 import { advancedRateLimit, scrapingRateLimit } from '../middlewares/antiBypassRateLimit.middleware.js';
-import { smartPlatformCache, cacheInvalidation } from '../middlewares/smartCache.middleware.js';
+import { apiResponseCache } from '../middlewares/apiCache.middleware.js';
 import { auditLogger } from '../middlewares/audit.middleware.js';
 import { enforceScrapingQuota } from '../middlewares/quota.middleware.js';
 
@@ -23,7 +23,7 @@ router.get(
   validateUsername,
   enforceScrapingQuota,
   auditLogger('FETCH_LEETCODE_STATS'),
-  smartPlatformCache(900),
+  apiResponseCache(900),
   ScrapeController.getLeetCodeStats
 );
 
@@ -37,7 +37,7 @@ router.get(
   scrapingRateLimit,
   validateUsername,
   auditLogger('FETCH_CODEFORCES_STATS'),
-  smartPlatformCache(900),
+  apiResponseCache(900),
   ScrapeController.getCodeforcesStats
 );
 
@@ -51,7 +51,7 @@ router.get(
   scrapingRateLimit,
   validateUsername,
   auditLogger('FETCH_CODECHEF_STATS'),
-  smartPlatformCache(900),
+  apiResponseCache(900),
   ScrapeController.getCodeChefStats
 );
 
@@ -65,7 +65,7 @@ router.get(
   scrapingRateLimit,
   validateUsername,
   auditLogger('FETCH_ATCODER_STATS'),
-  smartPlatformCache(900),
+  apiResponseCache(900),
   ScrapeController.getAtCoderStats
 );
 
@@ -79,7 +79,7 @@ router.get(
   scrapingRateLimit,
   validateUsername,
   auditLogger('FETCH_GITHUB_STATS'),
-  smartPlatformCache(1800),
+  apiResponseCache(1800),
   ScrapeController.getGitHubStats
 );
 
@@ -93,7 +93,7 @@ router.get(
   scrapingRateLimit,
   validateUsername,
   auditLogger('FETCH_SKILLRACK_STATS'),
-  smartPlatformCache(900),
+  apiResponseCache(900),
   ScrapeController.getSkillRackStats
 );
 
@@ -119,7 +119,7 @@ router.get(
 router.get(
   '/platforms', 
   advancedRateLimit,
-  smartPlatformCache(3600),
+  apiResponseCache(3600),
   ScrapeController.getSupportedPlatforms
 );
 
