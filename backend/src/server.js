@@ -12,7 +12,7 @@ import { securityHeaders } from './middlewares/security.middleware.js';
 import { enhancedSecurityHeaders } from './middlewares/enhancedSecurity.middleware.js';
 import { requestLogger, securityMonitor } from './middlewares/logging.middleware.js';
 import { sanitizeInput } from './middlewares/validation.middleware.js';
-import { generalLimiter } from './middlewares/rateLimiter.middleware.js';
+import { advancedRateLimit } from './middlewares/antiBypassRateLimit.middleware.js';
 import { correlationId } from './middlewares/correlationId.middleware.js';
 import { performanceMetrics } from './middlewares/performance.middleware.js';
 import {
@@ -54,6 +54,7 @@ import websocketRoutes from './routes/websocket.routes.js';
 import quotaRoutes from './routes/quota.routes.js';
 import jobsRoutes from './routes/jobs.routes.js';
 import monitoringRoutes from './routes/monitoring.routes.js';
+import grindRoomRoutes from './routes/grindRoom.routes.js';
 
 // Import secure logger to prevent JWT exposure
 import './utils/secureLogger.js';
@@ -76,10 +77,31 @@ globalErrorBoundary();
 // Initialize WebSocket server
 WebSocketManager.initialize(server);
 
-// Services will be started after database connection in startServer
+// Start batch processing scheduler
+BatchProcessingService.startScheduler();
+
+// Start cache warming service
+CacheWarmingService.startDefaultSchedules();
+
+// Register job handlers
+JobQueue.registerHandler('scraping', JobHandlers.handleScraping);
+JobQueue.registerHandler('cache_warmup', JobHandlers.handleCacheWarmup);
+JobQueue.registerHandler('analytics', JobHandlers.handleAnalytics);
+JobQueue.registerHandler('notification', JobHandlers.handleNotification);
+JobQueue.registerHandler('cleanup', JobHandlers.handleCleanup);
+JobQueue.registerHandler('export', JobHandlers.handleExport);
+
+// Start job processing
+JobQueue.startProcessing({ concurrency: 3, types: [] });
+
+// Start cron scheduler
+CronScheduler.start();
+
+// Start health monitoring
+HealthMonitor.startMonitoring(120000); // Every 2 minutes
 
 // Start alert monitoring
-AlertManager.startMonitoring(60000); // Every minute
+AlertManager.startMonitoring(300000); // Every 5 minutes
 
 // Request tracking and monitoring (first)
 app.use(correlationId);
@@ -106,8 +128,8 @@ app.use(securityAudit);
 app.use(abuseDetection);
 app.use(autoRefresh);
 
-// Distributed rate limiting
-app.use(generalLimiter);
+// Anti-bypass rate limiting
+app.use(advancedRateLimit);
 
 // CORS configuration
 app.use(cors(corsOptions));
@@ -166,6 +188,7 @@ app.use('/api/websocket', websocketRoutes);
 app.use('/api/quota', quotaRoutes);
 app.use('/api/jobs', jobsRoutes);
 app.use('/api/monitoring', monitoringRoutes);
+app.use('/api/rooms', grindRoomRoutes);
 
 // API documentation endpoint
 app.get('/api', (req, res) => {

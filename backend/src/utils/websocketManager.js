@@ -13,7 +13,7 @@ class WebSocketManager {
   }
 
   initialize(server) {
-    this.wss = new WebSocketServer({ 
+    this.wss = new WebSocketServer({
       server,
       path: '/ws',
       verifyClient: this.verifyClient.bind(this)
@@ -21,7 +21,7 @@ class WebSocketManager {
 
     this.wss.on('connection', this.handleConnection.bind(this));
     this.startHeartbeat();
-    
+
     Logger.info('WebSocket server initialized with authentication');
   }
 
@@ -31,7 +31,7 @@ class WebSocketManager {
       Logger.warn('WebSocket connection rejected', { error: auth.error });
       return false;
     }
-    
+
     info.req.user = auth;
     return true;
   }
@@ -39,24 +39,24 @@ class WebSocketManager {
   async handleConnection(ws, request) {
     const user = request.user;
     const userId = user.userId;
-    
+
     if (!this.clients.has(userId)) {
       this.clients.set(userId, new Set());
     }
     this.clients.get(userId).add(ws);
-    
+
     ws.userId = userId;
     ws.isAlive = true;
     ws.joinedRooms = new Set();
-    
+
     Logger.info('WebSocket client connected', { userId, email: user.email });
-    
+
     await this.deliverQueuedMessages(userId, ws);
-    
+
     ws.on('message', (data) => this.handleMessage(ws, data));
     ws.on('close', () => this.handleDisconnection(ws));
     ws.on('pong', () => { ws.isAlive = true; });
-    
+
     this.sendToUser(userId, {
       type: 'connected',
       message: 'WebSocket connected successfully',
@@ -67,16 +67,16 @@ class WebSocketManager {
   async deliverQueuedMessages(userId, ws) {
     try {
       const queuedMessages = await MessageQueue.getQueuedMessages(userId);
-      
+
       for (const msg of queuedMessages) {
         ws.send(JSON.stringify({
           type: 'queued_message',
           ...msg.message
         }));
-        
+
         await MessageQueue.markDelivered(userId, msg.id);
       }
-      
+
       if (queuedMessages.length > 0) {
         Logger.info('Delivered queued messages', { userId, count: queuedMessages.length });
       }
@@ -89,7 +89,7 @@ class WebSocketManager {
     try {
       const message = JSON.parse(data);
       const userId = ws.userId;
-      
+
       switch (message.type) {
         case 'join_room':
           this.joinRoom(userId, message.roomId, ws);
@@ -106,6 +106,12 @@ class WebSocketManager {
         case 'ping':
           ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
           break;
+        case 'activity_pulse':
+          this.handleActivityPulse(userId, message);
+          break;
+        case 'pomodoro_sync':
+          this.handlePomodoroSync(userId, message);
+          break;
         default:
           Logger.warn('Unknown message type', { type: message.type, userId });
       }
@@ -120,23 +126,23 @@ class WebSocketManager {
       this.rooms.set(roomId, new Set());
     }
     this.rooms.get(roomId).add(userId);
-    
+
     if (!this.userRooms.has(userId)) {
       this.userRooms.set(userId, new Set());
     }
     this.userRooms.get(userId).add(roomId);
-    
+
     ws.joinedRooms.add(roomId);
-    
+
     Logger.info('User joined room', { userId, roomId });
-    
+
     ws.send(JSON.stringify({
       type: 'room_joined',
       roomId,
       message: `Joined room ${roomId}`,
       timestamp: new Date().toISOString()
     }));
-    
+
     this.broadcastToRoom(roomId, {
       type: 'user_joined',
       userId,
@@ -152,22 +158,22 @@ class WebSocketManager {
         this.rooms.delete(roomId);
       }
     }
-    
+
     if (this.userRooms.has(userId)) {
       this.userRooms.get(userId).delete(roomId);
     }
-    
+
     ws.joinedRooms.delete(roomId);
-    
+
     Logger.info('User left room', { userId, roomId });
-    
+
     ws.send(JSON.stringify({
       type: 'room_left',
       roomId,
       message: `Left room ${roomId}`,
       timestamp: new Date().toISOString()
     }));
-    
+
     this.broadcastToRoom(roomId, {
       type: 'user_left',
       userId,
@@ -178,12 +184,12 @@ class WebSocketManager {
 
   async handleRoomMessage(userId, message) {
     const { roomId, content } = message;
-    
+
     if (!this.rooms.has(roomId) || !this.rooms.get(roomId).has(userId)) {
       Logger.warn('User not in room', { userId, roomId });
       return;
     }
-    
+
     const roomMessage = {
       type: 'room_message',
       roomId,
@@ -191,25 +197,25 @@ class WebSocketManager {
       content,
       timestamp: new Date().toISOString()
     };
-    
+
     await MessageQueue.persistMessage(roomId, roomMessage);
     this.broadcastToRoom(roomId, roomMessage);
-    
+
     Logger.info('Room message sent', { userId, roomId });
   }
 
   async handlePrivateMessage(senderId, message) {
     const { targetUserId, content } = message;
-    
+
     const privateMessage = {
       type: 'private_message',
       senderId,
       content,
       timestamp: new Date().toISOString()
     };
-    
+
     const delivered = this.sendToUser(targetUserId, privateMessage);
-    
+
     if (!delivered) {
       await MessageQueue.queueMessage(targetUserId, privateMessage);
       Logger.info('Private message queued', { senderId, targetUserId });
@@ -223,24 +229,24 @@ class WebSocketManager {
     if (!userConnections || userConnections.size === 0) {
       return false;
     }
-    
+
     const messageStr = JSON.stringify(message);
     let delivered = false;
-    
+
     userConnections.forEach(ws => {
       if (ws.readyState === ws.OPEN) {
         ws.send(messageStr);
         delivered = true;
       }
     });
-    
+
     return delivered;
   }
 
   broadcastToRoom(roomId, message, excludeUserId = null) {
     const roomUsers = this.rooms.get(roomId);
     if (!roomUsers) return;
-    
+
     roomUsers.forEach(userId => {
       if (userId !== excludeUserId) {
         this.sendToUser(userId, message);
@@ -250,18 +256,18 @@ class WebSocketManager {
 
   handleDisconnection(ws) {
     const userId = ws.userId;
-    
+
     if (this.clients.has(userId)) {
       this.clients.get(userId).delete(ws);
       if (this.clients.get(userId).size === 0) {
         this.clients.delete(userId);
       }
     }
-    
+
     ws.joinedRooms.forEach(roomId => {
       this.leaveRoom(userId, roomId, ws);
     });
-    
+
     Logger.info('WebSocket client disconnected', { userId });
   }
 
@@ -272,7 +278,7 @@ class WebSocketManager {
           ws.terminate();
           return;
         }
-        
+
         ws.isAlive = false;
         ws.ping();
       });
@@ -300,6 +306,32 @@ class WebSocketManager {
       ...notification,
       timestamp: new Date().toISOString()
     });
+  }
+
+  handleActivityPulse(userId, message) {
+    const { roomId, platform, difficulty } = message;
+    if (!this.rooms.has(roomId) || !this.rooms.get(roomId).has(userId)) return;
+
+    this.broadcastToRoom(roomId, {
+      type: 'activity_pulse',
+      userId,
+      platform,
+      difficulty,
+      timestamp: new Date().toISOString()
+    }, userId);
+  }
+
+  handlePomodoroSync(userId, message) {
+    const { roomId, action, duration } = message;
+    if (!this.rooms.has(roomId) || !this.rooms.get(roomId).has(userId)) return;
+
+    this.broadcastToRoom(roomId, {
+      type: 'pomodoro_sync',
+      userId,
+      action, // 'start', 'pause', 'reset'
+      duration,
+      timestamp: new Date().toISOString()
+    }, userId);
   }
 }
 
