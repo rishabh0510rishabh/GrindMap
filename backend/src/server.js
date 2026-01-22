@@ -57,6 +57,7 @@ import monitoringRoutes from './routes/monitoring.routes.js';
 import grindRoomRoutes from './routes/grindRoom.routes.js';
 import tournamentRoutes from './routes/tournament.routes.js';
 import duelRoutes from './routes/duel.routes.js';
+import mentorshipRoutes from './routes/mentorship.routes.js';
 
 // Import secure logger to prevent JWT exposure
 import './utils/secureLogger.js';
@@ -194,6 +195,7 @@ app.use('/api/monitoring', monitoringRoutes);
 app.use('/api/rooms', grindRoomRoutes);
 app.use('/api/tournaments', tournamentRoutes);
 app.use('/api/duels', duelRoutes);
+app.use('/api/mentorship', mentorshipRoutes);
 
 // API documentation endpoint
 app.get('/api', (req, res) => {
@@ -215,6 +217,7 @@ app.get('/api', (req, res) => {
       monitoring: '/api/monitoring',
       tournaments: '/api/tournaments',
       duels: '/api/duels',
+      mentorship: '/api/mentorship',
       health: '/health',
       database: '/api/database',
     },
