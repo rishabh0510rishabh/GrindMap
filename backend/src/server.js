@@ -95,12 +95,14 @@ BatchProcessingService.startScheduler();
 // Start cache warming service
 CacheWarmingService.startDefaultSchedules();
 
-// Register reliable job handlers
-RobustJobQueue.registerHandler('scraping', ReliableJobHandlers.handleScraping);
-RobustJobQueue.registerHandler('cache_warmup', ReliableJobHandlers.handleCacheWarmup);
-RobustJobQueue.registerHandler('analytics', ReliableJobHandlers.handleAnalytics);
-RobustJobQueue.registerHandler('notification', ReliableJobHandlers.handleNotification);
-RobustJobQueue.registerHandler('cleanup', ReliableJobHandlers.handleCleanup);
+// Register job handlers
+JobQueue.registerHandler('scraping', JobHandlers.handleScraping);
+JobQueue.registerHandler('cache_warmup', JobHandlers.handleCacheWarmup);
+JobQueue.registerHandler('analytics', JobHandlers.handleAnalytics);
+JobQueue.registerHandler('notification', JobHandlers.handleNotification);
+JobQueue.registerHandler('cleanup', JobHandlers.handleCleanup);
+JobQueue.registerHandler('export', JobHandlers.handleExport);
+JobQueue.registerHandler('integrity', JobHandlers.handleIntegrity);
 
 // Start robust job processing
 RobustJobQueue.startProcessing();
