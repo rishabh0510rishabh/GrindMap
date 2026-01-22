@@ -152,10 +152,19 @@ class DatabaseManager {
         circuitBreakerState: this.circuitBreaker.getState()
       };
 
-      Logger.info('Database health check passed', stats);
+      // Only log if status changed or on errors
+      if (this.lastHealthStatus !== 'healthy') {
+        Logger.info('Database health restored', { status: 'healthy' });
+      }
+      this.lastHealthStatus = 'healthy';
+      
       return stats;
     } catch (error) {
-      Logger.warn('Database health check failed', { error: error.message });
+      if (this.lastHealthStatus !== 'unhealthy') {
+        Logger.warn('Database health check failed', { error: error.message });
+      }
+      this.lastHealthStatus = 'unhealthy';
+      
       return { status: 'unhealthy', error: error.message };
     }
   }

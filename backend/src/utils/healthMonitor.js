@@ -281,14 +281,15 @@ class HealthMonitor {
     // Record metrics
     MetricsCollector.gauge('health.overall_status', this.getStatusScore(overallStatus));
     MetricsCollector.histogram('health.check_duration', healthReport.duration);
-
-    // Log health status changes
+    
+    // Only log status changes and critical issues
     if (this.previousStatus && this.previousStatus !== overallStatus) {
       Logger.warn('Health status changed', {
         from: this.previousStatus,
-        to: overallStatus,
-        summary: healthReport.summary,
+        to: overallStatus
       });
+    } else if (overallStatus === 'critical') {
+      Logger.error('Critical health status', { summary: healthReport.summary });
     }
     this.previousStatus = overallStatus;
 
