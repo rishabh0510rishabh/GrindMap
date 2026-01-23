@@ -1,14 +1,33 @@
-export const memoryMonitor = (req, res, next) => {
-  const memUsage = process.memoryUsage();
-  const memUsedMB = memUsage.heapUsed / 1024 / 1024;
-  const memLimitMB = 512; // 512MB limit
-  
-  if (memUsedMB > memLimitMB) {
-    return res.status(503).json({
-      error: 'Service temporarily unavailable - high memory usage',
-      memoryUsage: `${memUsedMB.toFixed(2)}MB`
-    });
+import { asyncMiddleware } from '../utils/asyncWrapper.js';
+
+/**
+ * Memory monitoring middleware with async error handling
+ */
+const memoryMonitor = asyncMiddleware(async (req, res, next) => {
+  try {
+    const memUsage = process.memoryUsage();
+    const memoryThreshold = 500 * 1024 * 1024; // 500MB
+
+    // Log memory usage if above threshold
+    if (memUsage.heapUsed > memoryThreshold) {
+      console.warn('⚠️ HIGH MEMORY USAGE:', {
+        heapUsed: `${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`,
+        heapTotal: `${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`,
+        external: `${Math.round(memUsage.external / 1024 / 1024)}MB`,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Force garbage collection if memory is critically high
+    if (memUsage.heapUsed > memoryThreshold * 2 && global.gc) {
+      global.gc();
+    }
+
+    next();
+  } catch (error) {
+    console.error('Memory monitoring error:', error);
+    next(); // Continue even if monitoring fails
   }
-  
-  next();
-};
+});
+
+export { memoryMonitor };

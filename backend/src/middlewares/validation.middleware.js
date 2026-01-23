@@ -26,30 +26,88 @@ const sanitizeInput = (req, res, next) => {
         req.body[key] = escapeString(xss(req.body[key].trim()));
       }
     });
+
+    // Sanitize request body
+    if (req.body && typeof req.body === 'object') {
+      Object.keys(req.body).forEach(key => {
+        if (typeof req.body[key] === 'string') {
+          req.body[key] = xss(req.body[key].trim());
+        }
+      });
+    }
+
+    next();
+  } catch (error) {
+    throw new AppError('Input sanitization failed', HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR);
   }
+});
 
-  next();
-};
-
-// Validation error handler
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const errorMessages = errors.array().map(error => error.msg);
-    throw new AppError(errorMessages.join(', '), 400);
+/**
+ * Validation error handler middleware
+ * Converts express-validator errors to standardized format
+ */
+const handleValidationErrors = asyncMiddleware(async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const errorMessages = errors.array().map(error => error.msg);
+      throw new AppError(
+        errorMessages.join(', '), 
+        HTTP_STATUS.BAD_REQUEST, 
+        ERROR_CODES.VALIDATION_ERROR
+      );
+    }
+    next();
+  } catch (error) {
+    next(error);
   }
-  next();
-};
+});
 
-// Username validation rules
+/**
+ * Username validation rules for platform endpoints
+ * Ensures username meets platform requirements
+ */
 const validateUsername = [
   param('username')
-    .isLength({ min: 1, max: 50 })
-    .withMessage('Username must be 1-50 characters')
-    .matches(/^[a-zA-Z0-9_-]+$/)
+    .isLength({ 
+      min: VALIDATION.USERNAME_MIN_LENGTH, 
+      max: VALIDATION.USERNAME_MAX_LENGTH 
+    })
+    .withMessage(`Username must be ${VALIDATION.USERNAME_MIN_LENGTH}-${VALIDATION.USERNAME_MAX_LENGTH} characters`)
+    .matches(VALIDATION.USERNAME_PATTERN)
     .withMessage('Username can only contain letters, numbers, hyphens, and underscores')
     .escape(),
   handleValidationErrors
 ];
 
-export { sanitizeInput, validateUsername, handleValidationErrors };
+/**
+ * Email validation rules for authentication
+ */
+const validateEmail = [
+  body('email')
+    .isEmail()
+    .withMessage('Please provide a valid email address')
+    .normalizeEmail()
+    .escape(),
+  handleValidationErrors
+];
+
+/**
+ * Password validation rules for authentication
+ */
+const validatePassword = [
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters long')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
+  handleValidationErrors
+];
+
+export { 
+  sanitizeInput, 
+  validateUsername, 
+  validateEmail, 
+  validatePassword, 
+  handleValidationErrors 
+};
