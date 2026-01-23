@@ -13,6 +13,8 @@ import { enhancedSecurityHeaders } from './middlewares/enhancedSecurity.middlewa
 import { requestLogger, securityMonitor } from './middlewares/logging.middleware.js';
 import { auditLogger, securityAudit } from './middlewares/audit.middleware.js';
 import { injectionProtection } from './middlewares/injection.middleware.js';
+import { adaptiveRateLimit, strictRateLimit, burstProtection, ddosProtection } from './middlewares/ddos.middleware.js';
+import { ipFilter } from './utils/ipManager.js';
 import { sanitizeInput, validateUsername } from './middlewares/validation.middleware.js';
 import { generalLimiter, scrapingLimiter } from './middlewares/rateLimiter.middleware.js';
 import { asyncHandler } from './utils/asyncHandler.js';
@@ -24,9 +26,15 @@ import { normalizeCodeChef } from './services/normalization/codechef.normalizer.
 import { backpressureManager } from './utils/backpressure.util.js';
 import { withTrace } from './utils/serviceTracer.util.js';
 import auditRoutes from './routes/audit.routes.js';
+import securityRoutes from './routes/security.routes.js';
 import { secureLogger, secureErrorHandler } from './middlewares/secureLogging.middleware.js';
 import { validateEnvironment } from './config/environment.js';
 import { gracefulShutdown } from './utils/shutdown.util.js';
+
+// Set default NODE_ENV if not provided
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'development';
+}
 
 // Validate environment on startup
 validateEnvironment();
@@ -63,6 +71,10 @@ if (!IS_TEST) {
 
 app.use(auditLogger);
 app.use(securityAudit);
+app.use(ipFilter);
+app.use(ddosProtection);
+app.use(burstProtection);
+app.use(adaptiveRateLimit);
 app.use(injectionProtection);
 app.use(secureLogger);
 app.use(requestLogger);
@@ -102,7 +114,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(sanitizeInput);
 
 // Audit routes
-app.use('/api/audit', auditRoutes);
+app.use('/api/audit', strictRateLimit, auditRoutes);
+
+// Security management routes
+app.use('/api/security', strictRateLimit, securityRoutes);
 
 app.get('/api/leetcode/:username', 
   scrapingLimiter, 
