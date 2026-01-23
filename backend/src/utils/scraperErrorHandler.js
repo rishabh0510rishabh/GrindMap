@@ -19,7 +19,7 @@ class ScraperErrorHandler {
     // Log the original error for debugging
     Logger.error(`Scraper error for ${platform}:${username}`, {
       error: error.message,
-      stack: error.stack,
+      stack: error?.stack,
       errorType,
       ...errorContext
     });
