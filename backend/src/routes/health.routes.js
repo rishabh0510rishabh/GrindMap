@@ -1,4 +1,5 @@
 import express from 'express';
+import { getActiveRequests, cleanupStaleRequests } from '../middlewares/timeout.middleware.js';
 import { getSystemHealth, checkDependencies, getDetailedMetrics } from '../services/health.service.js';
 
 const router = express.Router();
@@ -30,7 +31,15 @@ router.get('/', async (req, res) => {
 router.get('/metrics', (req, res) => {
   try {
     const metrics = getDetailedMetrics();
-    res.json(metrics);
+    const activeRequests = getActiveRequests();
+    
+    res.json({
+      ...metrics,
+      activeRequests: {
+        count: activeRequests.length,
+        requests: activeRequests
+      }
+    });
   } catch (error) {
     res.status(500).json({
       error: error.message,
@@ -61,6 +70,9 @@ router.get('/ready', async (req, res) => {
 
 // Liveness probe for Kubernetes
 router.get('/live', (req, res) => {
+  // Cleanup stale requests during liveness check
+  cleanupStaleRequests();
+  
   res.json({
     alive: true,
     timestamp: new Date().toISOString(),
