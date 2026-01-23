@@ -9,6 +9,7 @@ import { auditLogger, securityAudit } from './middlewares/audit.middleware.js';
 import { injectionProtection } from './middlewares/injection.middleware.js';
 import { xssProtection } from './middlewares/xss.middleware.js';
 import { monitoringMiddleware } from './middlewares/monitoring.middleware.js';
+import { timeoutMiddleware, scrapingTimeout, healthTimeout, auditTimeout, securityTimeout } from './middlewares/timeout.middleware.js';
 import { adaptiveRateLimit, strictRateLimit, burstProtection, ddosProtection } from './middlewares/ddos.middleware.js';
 import { ipFilter } from './utils/ipManager.js';
 import { sanitizeInput, validateUsername } from './middlewares/validation.middleware.js';
@@ -26,6 +27,7 @@ import securityRoutes from './routes/security.routes.js';
 import healthRoutes from './routes/health.routes.js';
 import { secureLogger, secureErrorHandler } from './middlewares/secureLogging.middleware.js';
 import { validateEnvironment } from './config/environment.js';
+import { connectionManager } from './utils/connectionManager.js';
 import { gracefulShutdown } from './utils/shutdown.util.js';
 
 // Set default NODE_ENV if not provided
@@ -41,6 +43,7 @@ const PORT = process.env.PORT || 5001;
 
 app.use(auditLogger);
 app.use(securityAudit);
+app.use(timeoutMiddleware()); // Default 30s timeout
 app.use(monitoringMiddleware);
 app.use(ipFilter);
 app.use(ddosProtection);
@@ -58,15 +61,16 @@ app.use(express.json({ limit: '10mb' }));
 app.use(sanitizeInput);
 
 // Health check routes (no rate limiting for load balancers)
-app.use('/health', healthRoutes);
+app.use('/health', healthTimeout, healthRoutes);
 
 // Audit routes
-app.use('/api/audit', strictRateLimit, auditRoutes);
+app.use('/api/audit', auditTimeout, strictRateLimit, auditRoutes);
 
 // Security management routes
-app.use('/api/security', strictRateLimit, securityRoutes);
+app.use('/api/security', securityTimeout, strictRateLimit, securityRoutes);
 
 app.get('/api/leetcode/:username', 
+  scrapingTimeout,
   scrapingLimiter, 
   validateUsername, 
   asyncHandler(async (req, res) => {
@@ -91,6 +95,7 @@ app.get('/api/leetcode/:username',
 );
 
 app.get('/api/codeforces/:username',
+  scrapingTimeout,
   validateUsername,
   asyncHandler(async (req, res) => {
     const username = req.params.username;
@@ -105,6 +110,7 @@ app.get('/api/codeforces/:username',
 );
 
 app.get('/api/codechef/:username',
+  scrapingTimeout,
   validateUsername,
   asyncHandler(async (req, res) => {
     const username = req.params.username;
@@ -126,4 +132,7 @@ const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-gracefulShutdown(server);
+// Setup connection management
+const connManager = connectionManager(server);
+
+gracefulShutdown(server, connManager);
