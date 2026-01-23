@@ -12,7 +12,8 @@ import { monitoringMiddleware } from './middlewares/monitoring.middleware.js';
 import { memoryMiddleware } from './middlewares/memory.middleware.js';
 import { cpuProtection, heavyOperationProtection } from './middlewares/cpuProtection.middleware.js';
 import { responseSizeLimit, compressionBombProtection, healthSizeLimit, auditSizeLimit, securitySizeLimit, scrapingSizeLimit } from './middlewares/responseLimit.middleware.js';
-import { validateContentType, healthBodyLimit, auditBodyLimit, securityBodyLimit } from './middlewares/bodyLimit.middleware.js';
+import { validateContentType, healthBodyLimit, auditBodyLimit, securityBodyLimit, scrapingBodyLimit, validateJSONStructure } from './middlewares/bodyLimit.middleware.js';
+import { maliciousPayloadDetection, requestSizeTracker, parseTimeLimit } from './middlewares/requestParsing.middleware.js';
 import { timeoutMiddleware, scrapingTimeout, healthTimeout, auditTimeout, securityTimeout } from './middlewares/timeout.middleware.js';
 import { adaptiveRateLimit, strictRateLimit, burstProtection, ddosProtection } from './middlewares/ddos.middleware.js';
 import { ipFilter } from './utils/ipManager.js';
@@ -100,8 +101,10 @@ const PORT = process.env.PORT || 5001;
 
 app.use(auditLogger);
 app.use(securityAudit);
+app.use(requestSizeTracker);
 app.use(cpuProtection);
 app.use(memoryMiddleware);
+app.use(maliciousPayloadDetection);
 app.use(compressionBombProtection);
 app.use(responseSizeLimit()); // Default 500KB response limit
 app.use(validateContentType());
@@ -119,7 +122,9 @@ app.use(securityMonitor);
 app.use(securityHeaders);
 app.use(generalLimiter);
 app.use(cors(corsOptions));
+app.use(parseTimeLimit()); // 1 second JSON parse limit
 app.use(express.json({ limit: '10mb' }));
+app.use(validateJSONStructure);
 app.use(sanitizeInput);
 
 // Health check routes (no rate limiting for load balancers)
@@ -132,6 +137,7 @@ app.use('/api/audit', auditBodyLimit, auditSizeLimit, auditTimeout, strictRateLi
 app.use('/api/security', securityBodyLimit, securitySizeLimit, securityTimeout, strictRateLimit, securityRoutes);
 
 app.get('/api/leetcode/:username', 
+  scrapingBodyLimit,
   scrapingSizeLimit,
   scrapingTimeout,
   heavyOperationProtection,
@@ -159,6 +165,7 @@ app.get('/api/leetcode/:username',
 );
 
 app.get('/api/codeforces/:username',
+  scrapingBodyLimit,
   scrapingSizeLimit,
   scrapingTimeout,
   heavyOperationProtection,
@@ -176,6 +183,7 @@ app.get('/api/codeforces/:username',
 );
 
 app.get('/api/codechef/:username',
+  scrapingBodyLimit,
   scrapingSizeLimit,
   scrapingTimeout,
   heavyOperationProtection,

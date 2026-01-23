@@ -3,6 +3,7 @@ import { getActiveRequests, cleanupStaleRequests } from '../middlewares/timeout.
 import { memoryMonitor } from '../services/memoryMonitor.service.js';
 import { cpuMonitor } from '../services/cpuMonitor.service.js';
 import { bandwidthMonitor } from '../services/bandwidthMonitor.service.js';
+import { bodyValidationMonitor } from '../services/bodyValidationMonitor.service.js';
 import { processLimiter } from '../utils/processLimiter.js';
 import { cacheManager } from '../utils/cacheManager.js';
 import { getSystemHealth, checkDependencies, getDetailedMetrics } from '../services/health.service.js';
@@ -41,6 +42,7 @@ router.get('/metrics', (req, res) => {
     const cpuStats = cpuMonitor.getStats();
     const cacheStats = cacheManager.getStats();
     const bandwidthStats = bandwidthMonitor.getStats();
+    const bodyValidationStats = bodyValidationMonitor.getStats();
     const processStats = processLimiter.getStats();
     
     res.json({
@@ -53,6 +55,7 @@ router.get('/metrics', (req, res) => {
       cpu: cpuStats,
       caches: cacheStats,
       bandwidth: bandwidthStats,
+      bodyValidation: bodyValidationStats,
       process: processStats
     });
   } catch (error) {
