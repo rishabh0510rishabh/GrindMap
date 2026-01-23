@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { sanitizeSensitiveData } from '../utils/sanitizer.js';
 
 const LOGS_DIR = path.join(process.cwd(), 'logs');
 const AUDIT_FILE = path.join(LOGS_DIR, 'audit.log');
@@ -11,7 +12,8 @@ if (!fs.existsSync(LOGS_DIR)) {
 }
 
 const writeLog = (file, data) => {
-  const logEntry = `${new Date().toISOString()} ${JSON.stringify(data)}\n`;
+  const sanitizedData = sanitizeSensitiveData(data);
+  const logEntry = `${new Date().toISOString()} ${JSON.stringify(sanitizedData)}\n`;
   fs.appendFileSync(file, logEntry);
 };
 
@@ -21,7 +23,7 @@ export const auditLogger = (req, res, next) => {
   
   req.requestId = requestId;
   
-  // Log request
+  // Log request (sanitized)
   const requestLog = {
     type: 'REQUEST',
     requestId,
@@ -30,9 +32,9 @@ export const auditLogger = (req, res, next) => {
     url: req.url,
     ip: req.ip || req.connection.remoteAddress,
     userAgent: req.get('User-Agent'),
-    headers: req.headers,
-    body: req.method !== 'GET' ? req.body : undefined,
-    query: req.query
+    headers: sanitizeSensitiveData(req.headers),
+    body: req.method !== 'GET' ? sanitizeSensitiveData(req.body) : undefined,
+    query: sanitizeSensitiveData(req.query)
   };
   
   writeLog(AUDIT_FILE, requestLog);
@@ -49,7 +51,7 @@ export const auditLogger = (req, res, next) => {
       statusCode: res.statusCode,
       responseTime: `${responseTime}ms`,
       contentLength: data ? data.length : 0,
-      response: res.statusCode >= 400 ? data : undefined
+      response: res.statusCode >= 400 ? sanitizeSensitiveData(data) : undefined
     };
     
     writeLog(AUDIT_FILE, responseLog);
