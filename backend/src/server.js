@@ -8,6 +8,7 @@ import { requestLogger, securityMonitor } from './middlewares/logging.middleware
 import { auditLogger, securityAudit } from './middlewares/audit.middleware.js';
 import { injectionProtection } from './middlewares/injection.middleware.js';
 import { xssProtection } from './middlewares/xss.middleware.js';
+import { monitoringMiddleware } from './middlewares/monitoring.middleware.js';
 import { adaptiveRateLimit, strictRateLimit, burstProtection, ddosProtection } from './middlewares/ddos.middleware.js';
 import { ipFilter } from './utils/ipManager.js';
 import { sanitizeInput, validateUsername } from './middlewares/validation.middleware.js';
@@ -22,6 +23,7 @@ import { backpressureManager } from './utils/backpressure.util.js';
 import { withTrace } from './utils/serviceTracer.util.js';
 import auditRoutes from './routes/audit.routes.js';
 import securityRoutes from './routes/security.routes.js';
+import healthRoutes from './routes/health.routes.js';
 import { secureLogger, secureErrorHandler } from './middlewares/secureLogging.middleware.js';
 import { validateEnvironment } from './config/environment.js';
 import { gracefulShutdown } from './utils/shutdown.util.js';
@@ -39,6 +41,7 @@ const PORT = process.env.PORT || 5001;
 
 app.use(auditLogger);
 app.use(securityAudit);
+app.use(monitoringMiddleware);
 app.use(ipFilter);
 app.use(ddosProtection);
 app.use(burstProtection);
@@ -53,6 +56,9 @@ app.use(generalLimiter);
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(sanitizeInput);
+
+// Health check routes (no rate limiting for load balancers)
+app.use('/health', healthRoutes);
 
 // Audit routes
 app.use('/api/audit', strictRateLimit, auditRoutes);
