@@ -1,5 +1,7 @@
 import express from 'express';
 import { getActiveRequests, cleanupStaleRequests } from '../middlewares/timeout.middleware.js';
+import { memoryMonitor } from '../services/memoryMonitor.service.js';
+import { cacheManager } from '../utils/cacheManager.js';
 import { getSystemHealth, checkDependencies, getDetailedMetrics } from '../services/health.service.js';
 
 const router = express.Router();
@@ -32,13 +34,17 @@ router.get('/metrics', (req, res) => {
   try {
     const metrics = getDetailedMetrics();
     const activeRequests = getActiveRequests();
+    const memoryStats = memoryMonitor.getStats();
+    const cacheStats = cacheManager.getStats();
     
     res.json({
       ...metrics,
       activeRequests: {
         count: activeRequests.length,
         requests: activeRequests
-      }
+      },
+      memory: memoryStats,
+      caches: cacheStats
     });
   } catch (error) {
     res.status(500).json({
@@ -70,8 +76,9 @@ router.get('/ready', async (req, res) => {
 
 // Liveness probe for Kubernetes
 router.get('/live', (req, res) => {
-  // Cleanup stale requests during liveness check
+  // Cleanup stale requests and caches during liveness check
   cleanupStaleRequests();
+  cacheManager.cleanup();
   
   res.json({
     alive: true,

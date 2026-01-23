@@ -9,6 +9,7 @@ import { auditLogger, securityAudit } from './middlewares/audit.middleware.js';
 import { injectionProtection } from './middlewares/injection.middleware.js';
 import { xssProtection } from './middlewares/xss.middleware.js';
 import { monitoringMiddleware } from './middlewares/monitoring.middleware.js';
+import { memoryMiddleware } from './middlewares/memory.middleware.js';
 import { timeoutMiddleware, scrapingTimeout, healthTimeout, auditTimeout, securityTimeout } from './middlewares/timeout.middleware.js';
 import { adaptiveRateLimit, strictRateLimit, burstProtection, ddosProtection } from './middlewares/ddos.middleware.js';
 import { ipFilter } from './utils/ipManager.js';
@@ -28,6 +29,8 @@ import healthRoutes from './routes/health.routes.js';
 import { secureLogger, secureErrorHandler } from './middlewares/secureLogging.middleware.js';
 import { validateEnvironment } from './config/environment.js';
 import { connectionManager } from './utils/connectionManager.js';
+import { memoryMonitor } from './services/memoryMonitor.service.js';
+import { cacheManager } from './utils/cacheManager.js';
 import { gracefulShutdown } from './utils/shutdown.util.js';
 
 // Set default NODE_ENV if not provided
@@ -38,11 +41,30 @@ if (!process.env.NODE_ENV) {
 // Validate environment on startup
 validateEnvironment();
 
+// Start memory monitoring
+memoryMonitor.start();
+
+// Setup memory event handlers
+memoryMonitor.on('warning', ({ usage, ratio }) => {
+  console.warn(`⚠️ Memory warning: ${Math.round(ratio * 100)}% usage`);
+});
+
+memoryMonitor.on('critical', ({ usage, ratio }) => {
+  console.error(`🚨 Memory critical: ${Math.round(ratio * 100)}% usage`);
+  cacheManager.cleanup(); // Clean expired cache entries
+});
+
+memoryMonitor.on('emergency', ({ usage, ratio }) => {
+  console.error(`💥 Memory emergency: ${Math.round(ratio * 100)}% usage`);
+  cacheManager.clearAll(); // Clear all caches
+});
+
 const app = express();
 const PORT = process.env.PORT || 5001;
 
 app.use(auditLogger);
 app.use(securityAudit);
+app.use(memoryMiddleware);
 app.use(timeoutMiddleware()); // Default 30s timeout
 app.use(monitoringMiddleware);
 app.use(ipFilter);
