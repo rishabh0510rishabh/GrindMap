@@ -1,4 +1,8 @@
 import express from 'express';
+import { getActiveRequests, cleanupStaleRequests } from '../middlewares/timeout.middleware.js';
+import { memoryMonitor } from '../services/memoryMonitor.service.js';
+import { bandwidthMonitor } from '../services/bandwidthMonitor.service.js';
+import { cacheManager } from '../utils/cacheManager.js';
 import { getSystemHealth, checkDependencies, getDetailedMetrics } from '../services/health.service.js';
 
 const router = express.Router();
@@ -30,7 +34,21 @@ router.get('/', async (req, res) => {
 router.get('/metrics', (req, res) => {
   try {
     const metrics = getDetailedMetrics();
-    res.json(metrics);
+    const activeRequests = getActiveRequests();
+    const memoryStats = memoryMonitor.getStats();
+    const cacheStats = cacheManager.getStats();
+    const bandwidthStats = bandwidthMonitor.getStats();
+    
+    res.json({
+      ...metrics,
+      activeRequests: {
+        count: activeRequests.length,
+        requests: activeRequests
+      },
+      memory: memoryStats,
+      caches: cacheStats,
+      bandwidth: bandwidthStats
+    });
   } catch (error) {
     res.status(500).json({
       error: error.message,
@@ -61,6 +79,10 @@ router.get('/ready', async (req, res) => {
 
 // Liveness probe for Kubernetes
 router.get('/live', (req, res) => {
+  // Cleanup stale requests and caches during liveness check
+  cleanupStaleRequests();
+  cacheManager.cleanup();
+  
   res.json({
     alive: true,
     timestamp: new Date().toISOString(),

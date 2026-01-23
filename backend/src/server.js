@@ -57,6 +57,10 @@ import securityRoutes from './routes/security.routes.js';
 import healthRoutes from './routes/health.routes.js';
 import { secureLogger, secureErrorHandler } from './middlewares/secureLogging.middleware.js';
 import { validateEnvironment } from './config/environment.js';
+import { connectionManager } from './utils/connectionManager.js';
+import { memoryMonitor } from './services/memoryMonitor.service.js';
+import { bandwidthMonitor } from './services/bandwidthMonitor.service.js';
+import { cacheManager } from './utils/cacheManager.js';
 import { gracefulShutdown } from './utils/shutdown.util.js';
 
 // Set default NODE_ENV if not provided
@@ -66,6 +70,27 @@ if (!process.env.NODE_ENV) {
 
 // Validate environment on startup
 validateEnvironment();
+
+// Start memory monitoring
+memoryMonitor.start();
+
+// Start bandwidth monitoring
+bandwidthMonitor.start();
+
+// Setup memory event handlers
+memoryMonitor.on('warning', ({ usage, ratio }) => {
+  console.warn(`⚠️ Memory warning: ${Math.round(ratio * 100)}% usage`);
+});
+
+memoryMonitor.on('critical', ({ usage, ratio }) => {
+  console.error(`🚨 Memory critical: ${Math.round(ratio * 100)}% usage`);
+  cacheManager.cleanup(); // Clean expired cache entries
+});
+
+memoryMonitor.on('emergency', ({ usage, ratio }) => {
+  console.error(`💥 Memory emergency: ${Math.round(ratio * 100)}% usage`);
+  cacheManager.clearAll(); // Clear all caches
+});
 
 const app = express();
 const server = createServer(app);
@@ -222,15 +247,17 @@ app.use(preventParameterPollution({ whitelist: ['tags', 'categories'] })); // HP
 app.use(validationSanitize); // Additional validation
 
 // Health check routes (no rate limiting for load balancers)
-app.use('/health', healthRoutes);
+app.use('/health', healthBodyLimit, healthSizeLimit, healthTimeout, healthRoutes);
 
 // Audit routes
-app.use('/api/audit', strictRateLimit, auditRoutes);
+app.use('/api/audit', auditBodyLimit, auditSizeLimit, auditTimeout, strictRateLimit, auditRoutes);
 
 // Security management routes
-app.use('/api/security', strictRateLimit, securityRoutes);
+app.use('/api/security', securityBodyLimit, securitySizeLimit, securityTimeout, strictRateLimit, securityRoutes);
 
 app.get('/api/leetcode/:username', 
+  scrapingSizeLimit,
+  scrapingTimeout,
   scrapingLimiter, 
   validateUsername, 
   asyncHandler(async (req, res) => {
@@ -255,6 +282,8 @@ app.get('/api/leetcode/:username',
 );
 
 app.get('/api/codeforces/:username',
+  scrapingSizeLimit,
+  scrapingTimeout,
   validateUsername,
   asyncHandler(async (req, res) => {
     const username = req.params.username;
@@ -269,6 +298,8 @@ app.get('/api/codeforces/:username',
 );
 
 app.get('/api/codechef/:username',
+  scrapingSizeLimit,
+  scrapingTimeout,
   validateUsername,
   asyncHandler(async (req, res) => {
     const username = req.params.username;
@@ -327,4 +358,17 @@ if (!IS_TEST) {
   startServer();
 }
 
-export default app;
+// Setup connection management
+const connManager = connectionManager(server);
+
+// Track bandwidth usage
+server.on('request', (req, res) => {
+  const originalEnd = res.end;
+  res.end = function(chunk, encoding) {
+    const size = chunk ? Buffer.byteLength(chunk, encoding) : 0;
+    bandwidthMonitor.trackUsage(req.ip || req.connection.remoteAddress, size);
+    return originalEnd.call(this, chunk, encoding);
+  };
+});
+
+gracefulShutdown(server, connManager);
