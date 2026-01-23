@@ -5,8 +5,10 @@ import { fetchCodeChefStats } from './scraping/codechef.scraper.js';
 import { fetchAtCoderStats } from './scraping/atcoder.scraper.js';
 import { scrapeGitHub } from './scraping/github.scraper.js';
 import { fetchSkillRackStats } from './scraping/skillrack.scraper.js';
+import { scrapeHackerEarth } from './scraping/hackerearth.scraper.js';
 import { normalizeCodeforces } from './normalization/codeforces.normalizer.js';
 import { normalizeCodeChef } from './normalization/codechef.normalizer.js';
+import { normalizeHackerEarth } from './normalization/hackerearth.normalizer.js';
 import { scrapeHackerRank } from './scraping/hackerrank.scraper.js';
 import { normalizeHackerRank } from './normalization/hackerrank.normalizer.js';
 import { PLATFORMS, MESSAGES } from '../constants/app.constants.js';
@@ -29,6 +31,16 @@ class PlatformService {
    * Fetch user data from LeetCode with caching and real-time updates
    */
   async fetchLeetCodeData(username, userId = null) {
+    const cacheKey = `platform:${PLATFORMS.LEETCODE}:${username}`;
+
+    try {
+      // Use advanced cache manager
+      const cached = await AdvancedCacheManager.get(cacheKey);
+      if (cached) {
+        return { ...cached, fromCache: true };
+      }
+    } catch (cacheError) {
+      console.warn('Cache read failed for LeetCode:', cacheError.message);
     const cacheKey = APICache.platformKey('leetcode', username);
     
     // Check cache first
@@ -44,6 +56,17 @@ class PlatformService {
         username,
         ...scraperResult,
       };
+
+      // Cache with advanced manager and tags
+      try {
+        await AdvancedCacheManager.set(cacheKey, result, config.CACHE_PLATFORM_TTL, {
+          tags: ['platform', 'leetcode', username]
+        });
+      } catch (cacheError) {
+        console.warn('Cache write failed for LeetCode:', cacheError.message);
+      }
+
+      // Emit real-time update
       
       // Cache for 15 minutes
       APICache.set(cacheKey, result, 900);
@@ -63,6 +86,16 @@ class PlatformService {
   }
 
   async fetchCodeforcesData(username, userId = null) {
+    const cacheKey = `platform:${PLATFORMS.CODEFORCES}:${username}`;
+
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        const data = JSON.parse(cached);
+        return { ...data, fromCache: true };
+      }
+    } catch (cacheError) {
+      console.warn('Cache read failed for Codeforces:', cacheError.message);
     const cacheKey = APICache.platformKey('codeforces', username);
     
     const cached = APICache.get(cacheKey);
@@ -79,6 +112,13 @@ class PlatformService {
         username,
         ...normalizedData,
       };
+
+      try {
+        await redis.set(cacheKey, JSON.stringify(result), config.CACHE_PLATFORM_TTL);
+      } catch (cacheError) {
+        console.warn('Cache write failed for Codeforces:', cacheError.message);
+      }
+
       
       APICache.set(cacheKey, result, 900);
       
@@ -97,6 +137,16 @@ class PlatformService {
   }
 
   async fetchCodeChefData(username, userId = null) {
+    const cacheKey = `platform:${PLATFORMS.CODECHEF}:${username}`;
+
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        const data = JSON.parse(cached);
+        return { ...data, fromCache: true };
+      }
+    } catch (cacheError) {
+      console.warn('Cache read failed for CodeChef:', cacheError.message);
     const cacheKey = APICache.platformKey('codechef', username);
     
     const cached = APICache.get(cacheKey);
@@ -113,6 +163,13 @@ class PlatformService {
         username,
         ...normalizedData,
       };
+
+      try {
+        await redis.set(cacheKey, JSON.stringify(result), config.CACHE_PLATFORM_TTL);
+      } catch (cacheError) {
+        console.warn('Cache write failed for CodeChef:', cacheError.message);
+      }
+
       
       APICache.set(cacheKey, result, 900);
       
@@ -159,6 +216,56 @@ class PlatformService {
       return result;
     } catch (error) {
       throw new AppError(`${MESSAGES.SCRAPING_FAILED}: AtCoder`, 500, ERROR_CODES.SCRAPING_ERROR);
+    }
+  }
+
+  /**
+   * Fetch user data from HackerEarth with caching and real-time updates
+   */
+  async fetchHackerEarthData(username, userId = null) {
+    const cacheKey = `platform:${PLATFORMS.HACKEREARTH}:${username}`;
+
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        const data = JSON.parse(cached);
+        return { ...data, fromCache: true };
+      }
+    } catch (cacheError) {
+      console.warn('Cache read failed for HackerEarth:', cacheError.message);
+    }
+
+    try {
+      const rawData = await scrapeHackerEarth(username);
+      const normalizedData = normalizeHackerEarth({ ...rawData.data, username });
+
+      const result = {
+        platform: PLATFORMS.HACKEREARTH,
+        username,
+        ...normalizedData,
+      };
+
+      try {
+        await redis.set(cacheKey, JSON.stringify(result), config.CACHE_PLATFORM_TTL);
+      } catch (cacheError) {
+        console.warn('Cache write failed for HackerEarth:', cacheError.message);
+      }
+
+      if (userId) {
+        try {
+          DataChangeEmitter.emitPlatformUpdate(PLATFORMS.HACKEREARTH, username, result, userId);
+        } catch (emitError) {
+          console.warn('Real-time update failed for HackerEarth:', emitError.message);
+        }
+      }
+
+      return result;
+    } catch (error) {
+      throw new AppError(
+        `${MESSAGES.SCRAPING_FAILED}: HackerEarth - ${error.message}`,
+        500,
+        ERROR_CODES.SCRAPING_ERROR
+      );
     }
   }
 
@@ -298,6 +405,8 @@ class PlatformService {
     platforms.forEach(platform => {
       APICache.delete(APICache.platformKey(platform, username));
     });
+
+    await Promise.all(promises);
   }
 
   /**

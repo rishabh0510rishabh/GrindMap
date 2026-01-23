@@ -23,9 +23,8 @@ const PlatformCard = ({
   if (!data) {
     return (
       <div
-        className={`platform-card ${styles.card} ${
-          isExpanded ? "expanded" : ""
-        }`}
+        className={`platform-card ${styles.card} ${isExpanded ? "expanded" : ""
+          }`}
         onClick={() => onToggle(platform.key)}
       >
         <div className="card-header">
@@ -48,9 +47,8 @@ const PlatformCard = ({
   if (data.error) {
     return (
       <div
-        className={`platform-card ${styles.card} ${
-          isExpanded ? "expanded" : ""
-        }`}
+        className={`platform-card ${styles.card} ${isExpanded ? "expanded" : ""
+          }`}
         onClick={() => onToggle(platform.key)}
       >
         <div className="card-header">
@@ -72,6 +70,8 @@ const PlatformCard = ({
 
   return (
     <div
+      className={`platform-card ${styles.card} ${isExpanded ? "expanded" : ""
+        }`}
       className={`platform-card ${styles.card} ${isExpanded ? "expanded" : ""}`}
       onClick={() => onToggle(platform.key)}
     >
@@ -187,6 +187,15 @@ const PlatformCard = ({
             </div>
           )}
 
+          {platform.key === "hackerearth" && (
+            <div className="expanded-details">
+              <p>
+                Badges Earned: <strong>{data.badges || 0}</strong>
+              </p>
+              <p>
+                Recent Activity: <strong>{data.activity || 0}</strong>
+              </p>
+            </div>
           {platform.key === "hackerrank" && (
             <HREnhancedCard data={data} username={data?.username || "user"} />
           )}

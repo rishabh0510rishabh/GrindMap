@@ -1,60 +1,68 @@
 import express from 'express';
-import { JWTManager } from '../middlewares/jwtManager.middleware.js';
-import Logger from '../utils/logger.js';
+import { addToBlacklist, removeFromBlacklist, addToWhitelist, getBlacklist, getWhitelist } from '../utils/ipManager.js';
 
 const router = express.Router();
 
-// Token refresh endpoint
-router.post('/refresh', async (req, res) => {
-  try {
-    const { refreshToken } = req.body;
-    
-    if (!refreshToken) {
-      return res.status(400).json({ error: 'Refresh token required' });
-    }
-    
-    const newTokens = await JWTManager.rotateTokens(refreshToken);
-    
-    res.json({
-      success: true,
-      accessToken: newTokens.accessToken,
-      refreshToken: newTokens.refreshToken
-    });
-  } catch (error) {
-    Logger.error('Token refresh failed', { error: error.message });
-    res.status(401).json({ error: 'Invalid refresh token' });
-  }
-});
-
-// Security status endpoint
-router.get('/status', (req, res) => {
+// Get blacklisted IPs
+router.get('/blacklist', (req, res) => {
   res.json({
     success: true,
-    security: {
-      rateLimiting: 'active',
-      botDetection: 'active',
-      geoBlocking: 'active',
-      auditLogging: 'active',
-      jwtRotation: 'active'
-    },
-    timestamp: new Date().toISOString()
+    blacklist: getBlacklist()
   });
 });
 
-// Logout endpoint (revoke refresh token)
-router.post('/logout', async (req, res) => {
-  try {
-    const { userId } = req.body;
-    
-    if (userId) {
-      await JWTManager.revokeRefreshToken(userId);
-    }
-    
-    res.json({ success: true, message: 'Logged out successfully' });
-  } catch (error) {
-    Logger.error('Logout failed', { error: error.message });
-    res.status(500).json({ error: 'Logout failed' });
+// Get whitelisted IPs
+router.get('/whitelist', (req, res) => {
+  res.json({
+    success: true,
+    whitelist: getWhitelist()
+  });
+});
+
+// Add IP to blacklist
+router.post('/blacklist', (req, res) => {
+  const { ip, reason } = req.body;
+  
+  if (!ip) {
+    return res.status(400).json({
+      success: false,
+      error: 'IP address required'
+    });
   }
+  
+  addToBlacklist(ip, reason);
+  res.json({
+    success: true,
+    message: `IP ${ip} added to blacklist`
+  });
+});
+
+// Remove IP from blacklist
+router.delete('/blacklist/:ip', (req, res) => {
+  const { ip } = req.params;
+  removeFromBlacklist(ip);
+  res.json({
+    success: true,
+    message: `IP ${ip} removed from blacklist`
+  });
+});
+
+// Add IP to whitelist
+router.post('/whitelist', (req, res) => {
+  const { ip } = req.body;
+  
+  if (!ip) {
+    return res.status(400).json({
+      success: false,
+      error: 'IP address required'
+    });
+  }
+  
+  addToWhitelist(ip);
+  res.json({
+    success: true,
+    message: `IP ${ip} added to whitelist`
+  });
 });
 
 export default router;

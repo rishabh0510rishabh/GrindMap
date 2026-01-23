@@ -11,44 +11,21 @@ import { errorHandler, notFound } from './middlewares/error.middleware.js';
 import { securityHeaders } from './middlewares/security.middleware.js';
 import { enhancedSecurityHeaders } from './middlewares/enhancedSecurity.middleware.js';
 import { requestLogger, securityMonitor } from './middlewares/logging.middleware.js';
-import { sanitizeInput } from './middlewares/validation.middleware.js';
-import { apiTimeout } from './middlewares/requestTimeout.middleware.js';
-import { advancedRateLimit } from './middlewares/antiBypassRateLimit.middleware.js';
-import { correlationId } from './middlewares/correlationId.middleware.js';
-import { performanceMetrics } from './middlewares/performance.middleware.js';
-import {
-  distributedRateLimit,
-  botDetection,
-  geoSecurityCheck,
-  securityAudit,
-  abuseDetection,
-} from './middlewares/advancedSecurity.middleware.js';
-import { autoRefresh } from './middlewares/jwtManager.middleware.js';
-import { globalErrorBoundary } from './middlewares/errorBoundary.middleware.js';
-import DistributedSessionManager from './utils/distributedSessionManager.js';
-import WebSocketManager from './utils/websocketManager.js';
-import BatchProcessingService from './services/batchProcessing.service.js';
-import CacheWarmingService from './utils/cacheWarmingService.js';
-import RobustJobQueue from './utils/robustJobQueue.js';
-import CronScheduler from './services/cronScheduler.service.js';
-import ReliableJobHandlers from './services/reliableJobHandlers.service.js';
-import HealthMonitor from './utils/healthMonitor.js';
-import AlertManager from './utils/alertManager.js';
-import {
-  performanceMonitoring,
-  errorTracking,
-  memoryMonitoring,
-} from './middlewares/monitoring.middleware.js';
-import RequestManager from './utils/requestManager.js';
-import PuppeteerManager from './utils/puppeteerManager.js';
-
-// Import routes
-import scrapeRoutes from './routes/scrape.routes.js';
-import authRoutes from './routes/auth.routes.js';
-import cacheRoutes from './routes/cache.routes.js';
-import advancedCacheRoutes from './routes/advancedCache.routes.js';
-import notificationRoutes from './routes/notification.routes.js';
-import analyticsRoutes from './routes/analytics.routes.js';
+import { auditLogger, securityAudit } from './middlewares/audit.middleware.js';
+import { injectionProtection } from './middlewares/injection.middleware.js';
+import { adaptiveRateLimit, strictRateLimit, burstProtection, ddosProtection } from './middlewares/ddos.middleware.js';
+import { ipFilter } from './utils/ipManager.js';
+import { sanitizeInput, validateUsername } from './middlewares/validation.middleware.js';
+import { generalLimiter, scrapingLimiter } from './middlewares/rateLimiter.middleware.js';
+import { asyncHandler } from './utils/asyncHandler.js';
+import { AppError } from './utils/appError.js';
+import { fetchCodeforcesStats } from './services/scraping/codeforces.scraper.js';
+import { fetchCodeChefStats } from './services/scraping/codechef.scraper.js';
+import { normalizeCodeforces } from './services/normalization/codeforces.normalizer.js';
+import { normalizeCodeChef } from './services/normalization/codechef.normalizer.js';
+import { backpressureManager } from './utils/backpressure.util.js';
+import { withTrace } from './utils/serviceTracer.util.js';
+import auditRoutes from './routes/audit.routes.js';
 import securityRoutes from './routes/security.routes.js';
 import databaseRoutes from './routes/database.routes.js';
 import websocketRoutes from './routes/websocket.routes.js';
@@ -68,66 +45,52 @@ import './utils/secureLogger.js';
 import { HTTP_STATUS, ENVIRONMENTS } from './constants/app.constants.js';
 import Logger from './utils/logger.js';
 
-import EnvValidator from './utils/envValidator.js';
+// Set default NODE_ENV if not provided
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'development';
+}
 
-// Validate environment variables before starting
-EnvValidator.validate();
-const config = EnvValidator.getConfig();
+// Validate environment on startup
+validateEnvironment();
 
 const app = express();
 const server = createServer(app);
 const PORT = config.port;
 const NODE_ENV = config.nodeEnv;
 
+/**
+ * ✅ CHANGE #1 (ADDED)
+ * Detect Jest/test environment so we can skip runtime heavy operations.
+ */
+const IS_TEST = NODE_ENV === 'test';
+
 // Initialize global error boundary
 globalErrorBoundary();
 
-// Connect to database with pooling
-connectDB();
+/**
+ * ✅ CHANGE #2 (WRAPPED)
+ * Connect to DB only when NOT testing.
+ */
+if (!IS_TEST) {
+  connectDB();
+}
 
-// Start database pool monitoring
-DatabasePoolMonitor.startMonitoring(60000);
+/**
+ * ✅ CHANGE #3 (WRAPPED)
+ * Initialize WebSocket server only when NOT testing.
+ */
+if (!IS_TEST) {
+  WebSocketManager.initialize(server);
+}
 
-// Initialize WebSocket server
-WebSocketManager.initialize(server);
-
-// Start batch processing scheduler
-BatchProcessingService.startScheduler();
-
-// Start cache warming service
-CacheWarmingService.startDefaultSchedules();
-
-// Register job handlers
-JobQueue.registerHandler('scraping', JobHandlers.handleScraping);
-JobQueue.registerHandler('cache_warmup', JobHandlers.handleCacheWarmup);
-JobQueue.registerHandler('analytics', JobHandlers.handleAnalytics);
-JobQueue.registerHandler('notification', JobHandlers.handleNotification);
-JobQueue.registerHandler('cleanup', JobHandlers.handleCleanup);
-JobQueue.registerHandler('export', JobHandlers.handleExport);
-JobQueue.registerHandler('integrity', JobHandlers.handleIntegrity);
-
-// Start robust job processing
-RobustJobQueue.startProcessing();
-
-// Start cron scheduler
-CronScheduler.start();
-
-// Start health monitoring
-HealthMonitor.startMonitoring(120000); // Every 2 minutes
-
-// Start alert monitoring
-AlertManager.startMonitoring(300000); // Every 5 minutes
-
-// Request tracking and monitoring (first)
-app.use(correlationId);
-app.use(performanceMetrics);
-
-// Distributed session management
-app.use(DistributedSessionManager.middleware());
-
-// Enhanced security middleware
-app.use(enhancedSecurityHeaders);
-app.use(securityHeaders);
+app.use(auditLogger);
+app.use(securityAudit);
+app.use(ipFilter);
+app.use(ddosProtection);
+app.use(burstProtection);
+app.use(adaptiveRateLimit);
+app.use(injectionProtection);
+app.use(secureLogger);
 app.use(requestLogger);
 app.use(securityMonitor);
 
@@ -136,11 +99,13 @@ app.use(performanceMonitoring);
 app.use(memoryMonitoring);
 
 // Advanced security middleware
-app.use(distributedRateLimit);
-app.use(botDetection);
-app.use(geoSecurityCheck);
-app.use(securityAudit);
-app.use(abuseDetection);
+if (!IS_TEST) {
+  app.use(distributedRateLimit);
+  app.use(botDetection);
+  app.use(geoSecurityCheck);
+  app.use(securityAudit);
+  app.use(abuseDetection);
+}
 app.use(autoRefresh);
 
 // Request timeout handling
@@ -162,28 +127,32 @@ app.use(express.urlencoded({ extended: true }));
 // Input sanitization
 app.use(sanitizeInput);
 
-// Passport Middleware
-app.use(passport.initialize());
-configurePassport();
+// Audit routes
+app.use('/api/audit', strictRateLimit, auditRoutes);
 
-// Health check endpoint
-app.get('/health', async (req, res) => {
-  Logger.info('Health check accessed', { correlationId: req.correlationId });
+// Security management routes
+app.use('/api/security', strictRateLimit, securityRoutes);
 
-  try {
-    const dbHealth = await dbManager.healthCheck();
-    const dbStats = dbManager.getConnectionStats();
-
-    res.status(HTTP_STATUS.OK).json({
+app.get('/api/leetcode/:username', 
+  scrapingLimiter, 
+  validateUsername, 
+  asyncHandler(async (req, res) => {
+    const { username } = req.params;
+    
+    if (!username || username.trim() === '') {
+      throw new AppError('Username is required', 400);
+    }
+    
+    const data = await backpressureManager.process(() =>
+      withTrace(req.traceId, "leetcode.scrape", () =>
+        scrapeLeetCode(username)
+      )
+    );
+    
+    res.json({
       success: true,
-      message: 'Server is healthy',
-      timestamp: new Date().toISOString(),
-      environment: NODE_ENV,
-      correlationId: req.correlationId,
-      sessionActive: !!req.session,
-      websocketClients: WebSocketManager.getClientsCount(),
-      database: dbHealth,
-      connectionStats: dbStats,
+      data,
+      traceId: req.traceId
     });
   } catch (error) {
     Logger.error('Health check failed', { error: error.message });
@@ -245,45 +214,8 @@ app.get('/api', (req, res) => {
 
 // 404 handler for undefined routes
 app.use(notFound);
-
-// Global error handler (must be last)
-app.use(errorTracking);
+app.use(secureErrorHandler);
 app.use(errorHandler);
-
-// Global error handlers for unhandled promises and exceptions
-process.on('unhandledRejection', err => {
-  Logger.error('Unhandled Promise Rejection', {
-    error: err.message,
-    stack: err.stack,
-  });
-  process.exit(1);
-});
-
-process.on('uncaughtException', err => {
-  Logger.error('Uncaught Exception', {
-    error: err.message,
-    stack: err.stack,
-  });
-  process.exit(1);
-});
-
-// Graceful shutdown handler
-process.on('SIGTERM', async () => {
-  Logger.info('SIGTERM received. Shutting down gracefully...');
-
-  // Cleanup resources
-  await RequestManager.cleanup();
-  await PuppeteerManager.cleanup();
-
-  server.close(() => {
-    Logger.info('Process terminated');
-  });
-});
-
-// Start server
-const startServer = async () => {
-  try {
-    await connectDB();
 
     // Initialize services after database connection
     BatchProcessingService.startScheduler();
@@ -318,6 +250,12 @@ const startServer = async () => {
   }
 };
 
-startServer();
+/**
+ * ✅ CHANGE #6 (WRAPPED)
+ * Do NOT start listening server during tests.
+ */
+if (!IS_TEST) {
+  startServer();
+}
 
 export default app;

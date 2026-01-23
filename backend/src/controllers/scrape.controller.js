@@ -16,6 +16,11 @@ class ScrapeController {
    */
   getLeetCodeStats = asyncHandler(async (req, res) => {
     const { username } = req.params;
+    const userId = req.user?.id; // Get user ID if authenticated
+    const platformService = ServiceRegistry.getPlatformService();
+    const data = await platformService.fetchLeetCodeData(username, userId);
+
+    sendSuccess(res, data, `LeetCode data fetched for ${username}`);
     const userId = req.user?.id;
 
     try {
@@ -44,6 +49,11 @@ class ScrapeController {
    */
   getCodeforcesStats = asyncHandler(async (req, res) => {
     const { username } = req.params;
+    const userId = req.user?.id; // Get user ID if authenticated
+    const platformService = ServiceRegistry.getPlatformService();
+    const data = await platformService.fetchCodeforcesData(username, userId);
+
+    sendSuccess(res, data, `Codeforces data fetched for ${username}`);
     const userId = req.user?.id;
 
     try {
@@ -70,6 +80,11 @@ class ScrapeController {
    */
   getCodeChefStats = asyncHandler(async (req, res) => {
     const { username } = req.params;
+    const userId = req.user?.id; // Get user ID if authenticated
+    const platformService = ServiceRegistry.getPlatformService();
+    const data = await platformService.fetchCodeChefData(username, userId);
+
+    sendSuccess(res, data, `CodeChef data fetched for ${username}`);
     const userId = req.user?.id;
 
     try {
@@ -97,6 +112,10 @@ class ScrapeController {
   getAtCoderStats = asyncHandler(async (req, res) => {
     const { username } = req.params;
     const userId = req.user?.id;
+    const platformService = ServiceRegistry.getPlatformService();
+    const data = await platformService.fetchAtCoderData(username, userId);
+
+    sendSuccess(res, data, `AtCoder data fetched for ${username}`);
 
     try {
       const validatedUsername = InputValidator.validateUsername(username, 'ATCODER');
@@ -118,11 +137,27 @@ class ScrapeController {
   });
 
   /**
+   * Get HackerEarth user statistics with real-time updates
+   */
+  getHackerEarthStats = asyncHandler(async (req, res) => {
+    const { username } = req.params;
+    const userId = req.user?.id;
+    const platformService = ServiceRegistry.getPlatformService();
+    const data = await platformService.fetchHackerEarthData(username, userId);
+
+    sendSuccess(res, data, `HackerEarth data fetched for ${username}`);
+  });
+
+  /**
    * Get GitHub user statistics with real-time updates
    */
   getGitHubStats = asyncHandler(async (req, res) => {
     const { username } = req.params;
     const userId = req.user?.id;
+    const platformService = ServiceRegistry.getPlatformService();
+    const data = await platformService.fetchGitHubData(username, userId);
+
+    sendSuccess(res, data, `GitHub data fetched for ${username}`);
 
     try {
       const validatedUsername = InputValidator.validateUsername(username, 'GITHUB');
@@ -149,6 +184,10 @@ class ScrapeController {
   getSkillRackStats = asyncHandler(async (req, res) => {
     const { username } = req.params;
     const userId = req.user?.id;
+    const platformService = ServiceRegistry.getPlatformService();
+    const data = await platformService.fetchSkillRackData(username, userId);
+
+    sendSuccess(res, data, `SkillRack data fetched for ${username}`);
 
     try {
       const validatedUsername = InputValidator.validateUsername(username, 'SKILLRACK');
@@ -204,6 +243,10 @@ class ScrapeController {
    * Get list of supported platforms
    */
   getSupportedPlatforms = asyncHandler(async (req, res) => {
+    const platformService = ServiceRegistry.getPlatformService();
+    const platforms = platformService.getSupportedPlatforms();
+
+    sendSuccess(res, { platforms }, 'Supported platforms retrieved');
     try {
       const platformService = ServiceRegistry.getPlatformService();
       const platforms = platformService.getSupportedPlatforms();
