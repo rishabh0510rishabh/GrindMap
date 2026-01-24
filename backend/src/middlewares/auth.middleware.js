@@ -30,6 +30,8 @@ export const authBypassProtection = (req, res, next) => {
     if (checkValue(key) || checkValue(value)) {
       return next(new AppError('Suspicious query parameter detected', 400));
     }
+  } else {
+    throw new AppError("Not authorized, no token", 401, ERROR_CODES.INVALID_TOKEN);
   }
 
   // Check body parameters

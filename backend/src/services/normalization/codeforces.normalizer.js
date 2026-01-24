@@ -1,14 +1,10 @@
 export function normalizeCodeforces(data) {
   return {
-    platform: "codeforces",
+    platform: 'codeforces',
     username: data.username,
-    stats: {
-      totalSolved: data.totalSolved,
-      rating: data.rating,
-      rank: data.rank,
-      maxRating: data.maxRating
-    },
-    streak: { current: 0, max: 0 },
-    activity: []
+    rating: data.data.rating || 0,
+    maxRating: data.data.maxRating || 0,
+    rank: data.data.rank || 'unrated',
+    totalSolved: data.data.totalSolved || 0
   };
 }

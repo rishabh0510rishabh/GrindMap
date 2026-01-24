@@ -1,18 +1,36 @@
 import React from "react";
 import CircularProgress from "./CircularProgress";
 import ActivityHeatmap from "./ActivityHeatmap";
+import PlatformCardSkeleton from "./PlatformCardSkeleton";
+import styles from "./PlatformCard.module.css";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import HREnhancedCard from "./HREnhancedCard";
 
-const PlatformCard = ({ platform, data, expanded, onToggle, percentage }) => {
+const PlatformCard = ({
+  platform,
+  data,
+  expanded,
+  onToggle,
+  percentage,
+  loading,
+}) => {
   const isExpanded = expanded === platform.key;
+
+  if (loading) {
+    return <PlatformCardSkeleton platform={platform} />;
+  }
 
   if (!data) {
     return (
       <div
-        className={`platform-card ${isExpanded ? "expanded" : ""}`}
+        className={`platform-card ${styles.card} ${isExpanded ? "expanded" : ""
+          }`}
         onClick={() => onToggle(platform.key)}
       >
         <div className="card-header">
-          <h3 style={{ color: platform.color }}>{platform.name}</h3>
+          <h3 className={styles.title} style={{ color: platform.color }}>
+            {platform.name}
+          </h3>
           <div className="platform-progress">
             <CircularProgress
               percentage={percentage}
@@ -21,7 +39,7 @@ const PlatformCard = ({ platform, data, expanded, onToggle, percentage }) => {
             />
           </div>
         </div>
-        <p className="placeholder">Enter username and refresh</p>
+        <p className={styles.placeholder}>Enter username and refresh</p>
       </div>
     );
   }
@@ -29,11 +47,14 @@ const PlatformCard = ({ platform, data, expanded, onToggle, percentage }) => {
   if (data.error) {
     return (
       <div
-        className={`platform-card ${isExpanded ? "expanded" : ""}`}
+        className={`platform-card ${styles.card} ${isExpanded ? "expanded" : ""
+          }`}
         onClick={() => onToggle(platform.key)}
       >
         <div className="card-header">
-          <h3 style={{ color: platform.color }}>{platform.name}</h3>
+          <h3 className={styles.title} style={{ color: platform.color }}>
+            {platform.name}
+          </h3>
           <div className="platform-progress">
             <CircularProgress
               percentage={0}
@@ -49,11 +70,15 @@ const PlatformCard = ({ platform, data, expanded, onToggle, percentage }) => {
 
   return (
     <div
-      className={`platform-card ${isExpanded ? "expanded" : ""}`}
+      className={`platform-card ${styles.card} ${isExpanded ? "expanded" : ""
+        }`}
+      className={`platform-card ${styles.card} ${isExpanded ? "expanded" : ""}`}
       onClick={() => onToggle(platform.key)}
     >
       <div className="card-header">
-        <h3 style={{ color: platform.color }}>{platform.name}</h3>
+        <h3 className={styles.title} style={{ color: platform.color }}>
+          {platform.name}
+        </h3>
         <div className="platform-progress">
           <CircularProgress
             percentage={percentage}
@@ -116,21 +141,16 @@ const PlatformCard = ({ platform, data, expanded, onToggle, percentage }) => {
 
               <div className="heatmap-section">
                 <h4>Submission Heatmap</h4>
-                {/* Ensure data.submissionCalendar is passed correctly or getHeatmapData is used */}
                 {data.submissionCalendar ? (
                   <ActivityHeatmap
-                    data={
-                      // We need to move getHeatmapData helper or pass raw calendar
-                      // For now assuming data is pre-processed or we handle it here
-                      Object.entries(data.submissionCalendar).map(
-                        ([ts, count]) => ({
-                          date: new Date(parseInt(ts) * 1000)
-                            .toISOString()
-                            .split("T")[0],
-                          count,
-                        }),
-                      )
-                    }
+                    data={Object.entries(data.submissionCalendar || {}).map(
+                      ([ts, count]) => ({
+                        date: new Date(parseInt(ts) * 1000)
+                          .toISOString()
+                          .split("T")[0],
+                        count,
+                      }),
+                    )}
                   />
                 ) : (
                   <p>No calendar data</p>
@@ -165,6 +185,19 @@ const PlatformCard = ({ platform, data, expanded, onToggle, percentage }) => {
                 Country Rank: <strong>#{data.country_rank || "N/A"}</strong>
               </p>
             </div>
+          )}
+
+          {platform.key === "hackerearth" && (
+            <div className="expanded-details">
+              <p>
+                Badges Earned: <strong>{data.badges || 0}</strong>
+              </p>
+              <p>
+                Recent Activity: <strong>{data.activity || 0}</strong>
+              </p>
+            </div>
+          {platform.key === "hackerrank" && (
+            <HREnhancedCard data={data} username={data?.username || "user"} />
           )}
         </div>
       )}
