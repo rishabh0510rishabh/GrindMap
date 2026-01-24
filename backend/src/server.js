@@ -9,10 +9,20 @@ import passport from 'passport';
 import configurePassport from './config/passport.js';
 import { errorHandler, notFound } from './middlewares/error.middleware.js';
 import { securityHeaders } from './middlewares/security.middleware.js';
+import { securityHeaders as helmetHeaders, additionalSecurityHeaders } from './middlewares/security.headers.middleware.js';
+import { sanitizeInput, sanitizeMongoQuery, preventParameterPollution } from './middlewares/sanitization.middleware.js';
 import { enhancedSecurityHeaders } from './middlewares/enhancedSecurity.middleware.js';
 import { requestLogger, securityMonitor } from './middlewares/logging.middleware.js';
 import { auditLogger, securityAudit } from './middlewares/audit.middleware.js';
 import { injectionProtection } from './middlewares/injection.middleware.js';
+import { xssProtection } from './middlewares/xss.middleware.js';
+import { monitoringMiddleware } from './middlewares/monitoring.middleware.js';
+import { memoryMiddleware } from './middlewares/memory.middleware.js';
+import { cpuProtection, heavyOperationProtection } from './middlewares/cpuProtection.middleware.js';
+import { responseSizeLimit, compressionBombProtection, healthSizeLimit, auditSizeLimit, securitySizeLimit, scrapingSizeLimit } from './middlewares/responseLimit.middleware.js';
+import { validateContentType, healthBodyLimit, auditBodyLimit, securityBodyLimit, scrapingBodyLimit, validateJSONStructure } from './middlewares/bodyLimit.middleware.js';
+import { maliciousPayloadDetection, requestSizeTracker, parseTimeLimit } from './middlewares/requestParsing.middleware.js';
+import { timeoutMiddleware, scrapingTimeout, healthTimeout, auditTimeout, securityTimeout } from './middlewares/timeout.middleware.js';
 import { adaptiveRateLimit, strictRateLimit, burstProtection, ddosProtection } from './middlewares/ddos.middleware.js';
 import { ipFilter } from './utils/ipManager.js';
 import { sanitizeInput, validateUsername } from './middlewares/validation.middleware.js';
@@ -54,43 +64,74 @@ if (!process.env.NODE_ENV) {
 // Validate environment on startup
 validateEnvironment();
 
+// Start memory monitoring
+memoryMonitor.start();
+
+// Start CPU monitoring
+cpuMonitor.start();
+
+// Start bandwidth monitoring
+bandwidthMonitor.start();
+
+// Set process resource limits
+processLimiter.setLimits();
+
+// Setup memory event handlers
+memoryMonitor.on('warning', ({ usage, ratio }) => {
+  console.warn(`⚠️ Memory warning: ${Math.round(ratio * 100)}% usage`);
+});
+
+memoryMonitor.on('critical', ({ usage, ratio }) => {
+  console.error(`🚨 Memory critical: ${Math.round(ratio * 100)}% usage`);
+  cacheManager.cleanup(); // Clean expired cache entries
+});
+
+memoryMonitor.on('emergency', ({ usage, ratio }) => {
+  console.error(`💥 Memory emergency: ${Math.round(ratio * 100)}% usage`);
+  cacheManager.clearAll(); // Clear all caches
+});
+
+// Setup CPU event handlers
+cpuMonitor.on('warning', ({ cpuPercent }) => {
+  console.warn(`⚠️ CPU warning: ${cpuPercent.toFixed(1)}% usage`);
+});
+
+cpuMonitor.on('critical', ({ cpuPercent }) => {
+  console.error(`🚨 CPU critical: ${cpuPercent.toFixed(1)}% usage`);
+  // Trigger garbage collection to free up resources
+  if (global.gc) global.gc();
+});
+
+cpuMonitor.on('emergency', ({ cpuPercent }) => {
+  console.error(`💥 CPU emergency: ${cpuPercent.toFixed(1)}% usage`);
+  // Emergency cleanup
+  cacheManager.clearAll();
+  if (global.gc) {
+    global.gc();
+    global.gc(); // Double GC in emergency
+  }
+});
+
 const app = express();
-const server = createServer(app);
-const PORT = config.port;
-const NODE_ENV = config.nodeEnv;
-
-/**
- * ✅ CHANGE #1 (ADDED)
- * Detect Jest/test environment so we can skip runtime heavy operations.
- */
-const IS_TEST = NODE_ENV === 'test';
-
-// Initialize global error boundary
-globalErrorBoundary();
-
-/**
- * ✅ CHANGE #2 (WRAPPED)
- * Connect to DB only when NOT testing.
- */
-if (!IS_TEST) {
-  connectDB();
-}
-
-/**
- * ✅ CHANGE #3 (WRAPPED)
- * Initialize WebSocket server only when NOT testing.
- */
-if (!IS_TEST) {
-  WebSocketManager.initialize(server);
-}
+const PORT = process.env.PORT || 5001;
 
 app.use(auditLogger);
 app.use(securityAudit);
+app.use(requestSizeTracker);
+app.use(cpuProtection);
+app.use(memoryMiddleware);
+app.use(maliciousPayloadDetection);
+app.use(compressionBombProtection);
+app.use(responseSizeLimit()); // Default 500KB response limit
+app.use(validateContentType());
+app.use(timeoutMiddleware()); // Default 30s timeout
+app.use(monitoringMiddleware);
 app.use(ipFilter);
 app.use(ddosProtection);
 app.use(burstProtection);
 app.use(adaptiveRateLimit);
 app.use(injectionProtection);
+app.use(xssProtection);
 app.use(secureLogger);
 app.use(requestLogger);
 app.use(securityMonitor);
@@ -120,21 +161,25 @@ app.use(advancedRateLimit);
 
 // CORS configuration
 app.use(cors(corsOptions));
-
-// Body parsing middleware
+app.use(parseTimeLimit()); // 1 second JSON parse limit
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
-
-// Input sanitization
+app.use(validateJSONStructure);
 app.use(sanitizeInput);
 
+// Health check routes (no rate limiting for load balancers)
+app.use('/health', healthBodyLimit, healthSizeLimit, healthTimeout, healthRoutes);
+
 // Audit routes
-app.use('/api/audit', strictRateLimit, auditRoutes);
+app.use('/api/audit', auditBodyLimit, auditSizeLimit, auditTimeout, strictRateLimit, auditRoutes);
 
 // Security management routes
-app.use('/api/security', strictRateLimit, securityRoutes);
+app.use('/api/security', securityBodyLimit, securitySizeLimit, securityTimeout, strictRateLimit, securityRoutes);
 
 app.get('/api/leetcode/:username', 
+  scrapingBodyLimit,
+  scrapingSizeLimit,
+  scrapingTimeout,
+  heavyOperationProtection,
   scrapingLimiter, 
   validateUsername, 
   asyncHandler(async (req, res) => {
@@ -295,4 +340,17 @@ if (!IS_TEST) {
   startServer();
 }
 
-export default app;
+// Setup connection management
+const connManager = connectionManager(server);
+
+// Track bandwidth usage
+server.on('request', (req, res) => {
+  const originalEnd = res.end;
+  res.end = function(chunk, encoding) {
+    const size = chunk ? Buffer.byteLength(chunk, encoding) : 0;
+    bandwidthMonitor.trackUsage(req.ip || req.connection.remoteAddress, size);
+    return originalEnd.call(this, chunk, encoding);
+  };
+});
+
+gracefulShutdown(server, connManager);

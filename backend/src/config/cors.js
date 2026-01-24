@@ -14,33 +14,29 @@ const corsOptions = {
     const env = process.env.NODE_ENV || 'development';
     const allowed = allowedOrigins[env] || allowedOrigins.development;
     
-    // Block requests with no origin in production
+    // Block requests without origin in production
     if (env === 'production' && !origin) {
-      return callback(new Error('CORS policy: Origin required in production'));
+      return callback(new Error('Origin required in production'));
     }
     
-    // Allow same-origin requests (no origin header)
-    if (!origin) {
-      return callback(null, true);
-    }
-    
-    if (allowed.includes(origin)) {
+    if (!origin || allowed.includes(origin)) {
       callback(null, true);
     } else {
-      console.warn('CORS blocked origin:', origin);
-      callback(new Error(`CORS policy violation: ${origin} not allowed`));
+      console.warn(`🚫 CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  credentials: false,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
     'Content-Type', 
     'Authorization', 
     'X-Requested-With',
-    'X-Correlation-ID'
+    'Accept',
+    'Origin'
   ],
-  exposedHeaders: ['X-Correlation-ID', 'X-RateLimit-Remaining'],
-  maxAge: 3600, // 1 hour instead of 24 hours
+  exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining'],
+  maxAge: 86400, // 24 hours
   optionsSuccessStatus: 200
 };
 

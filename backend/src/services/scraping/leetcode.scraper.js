@@ -1,137 +1,60 @@
 import ApiClient from '../../utils/apiClient.js';
-import InputValidator from '../../utils/inputValidator.js';
-import ScraperErrorHandler from '../../utils/scraperErrorHandler.js';
-import Logger from '../../utils/logger.js';
-import RequestManager from '../../utils/requestManager.js';
+import BaseScraper from './baseScraper.js';
 
 // Create LeetCode API client with circuit breaker
 const leetcodeClient = ApiClient.createLeetCodeClient();
 
-export async function scrapeLeetCode(username) {
-  const startTime = Date.now();
-  let validatedUsername;
+class LeetCodeScraper extends BaseScraper {
+  constructor() {
+    super('LEETCODE', {
+      enableRetry: true,
+      enableFallback: true,
+      cacheTTL: 300
+    });
+  }
 
-  try {
-    // Validate and sanitize username
-    validatedUsername = InputValidator.validateUsername(username, 'LEETCODE');
-
-    Logger.debug(`Starting LeetCode scrape for user: ${validatedUsername}`);
-
+  async _executeScrape(validatedUsername) {
     // Use retry logic for the API call
-    const response = await ScraperErrorHandler.withRetry(
+    const response = await this._withRetry(
       async () => {
         return await leetcodeClient.get(`https://leetcode-stats.tashif.codes/${validatedUsername}`, {
-          cacheTTL: 300, // 5 minutes cache
-          cacheKey: `leetcode:${validatedUsername}`
+          cacheTTL: this.options.cacheTTL,
+          cacheKey: this._getCacheKey(validatedUsername)
         });
       },
-      'LEETCODE',
       validatedUsername,
       { apiEndpoint: 'leetcode-stats.tashif.codes' }
     );
 
+    return response;
+  }
+
+  _validateResponse(data) {
     // Validate API response structure
-    if (!response.data || typeof response.data !== 'object') {
+    if (!data || typeof data !== 'object') {
       throw new Error('Invalid response from LeetCode API: response data is missing or not an object');
     }
 
-    if (response.data.message === 'User not found') {
+    if (data.message === 'User not found') {
       throw new Error('User not found on LeetCode');
     }
 
-    if (response.data.totalSolved === undefined || response.data.totalQuestions === undefined) {
+    if (data.totalSolved === undefined || data.totalQuestions === undefined) {
       throw new Error('Invalid response from LeetCode API: required fields missing');
     }
+  }
 
-    // Validate API response
-    InputValidator.validateApiResponse(response.data, 'LEETCODE', ['totalSolved', 'totalQuestions']);
-
-    // Sanitize response data
-    const sanitizedData = InputValidator.sanitizeResponse(response.data);
-
-    const result = ScraperErrorHandler.createSuccessResponse(
-      'LEETCODE',
-      validatedUsername,
-      sanitizedData,
-      {
-        fromCache: response.fromCache,
-        fromFallback: response.fromFallback,
-        responseTime: Date.now() - startTime
-      }
-    );
-
-    // Log performance metrics
-    ScraperErrorHandler.logPerformanceMetrics(
-      'LEETCODE',
-      validatedUsername,
-      startTime,
-      true,
-      response.fromCache
-    );
-
-    return result;
-
-  } catch (error) {
-    // Handle circuit breaker errors first
-    if (ScraperErrorHandler.handleCircuitBreakerError(error, 'LEETCODE')) {
-      return;
-    }
-
-    // Try to get cached data as fallback
-    try {
-      const cachedData = await ScraperErrorHandler.getCachedFallback('LEETCODE', validatedUsername || username);
-      if (cachedData) {
-        Logger.info(`Using cached fallback data for LeetCode:${validatedUsername || username}`);
-
-        const result = ScraperErrorHandler.createSuccessResponse(
-          'LEETCODE',
-          validatedUsername || username,
-          cachedData,
-          {
-            fromCache: true,
-            fromFallback: true,
-            responseTime: Date.now() - startTime
-          }
-        );
-
-        // Log performance metrics for fallback success
-        try {
-          ScraperErrorHandler.logPerformanceMetrics(
-            'LEETCODE',
-            validatedUsername || username,
-            startTime,
-            true,
-            false,
-            true
-          );
-        } catch (metricsError) {
-          Logger.warn('Failed to log performance metrics for fallback success', {
-            error: metricsError.message,
-            platform: 'LEETCODE',
-            username: validatedUsername || username
-          });
-        }
-
-        return result;
-      }
-    } catch (cacheError) {
-      Logger.warn(`Cache fallback failed for LeetCode:${validatedUsername || username}`, {
-        error: cacheError.message
-      });
-    }
-
-    // Log performance metrics for failed requests
-    ScraperErrorHandler.logPerformanceMetrics(
-      'LEETCODE',
-      validatedUsername || username,
-      startTime,
-      false
-    );
-
-    // Handle and standardize the error
-    ScraperErrorHandler.handleScraperError(error, 'LEETCODE', validatedUsername || username, {
+  _getErrorContext() {
+    return {
       apiEndpoint: 'leetcode-stats.tashif.codes',
       circuitBreakerState: leetcodeClient.getCircuitBreakerState()
-    });
+    };
   }
+}
+
+// Create singleton instance
+const leetCodeScraper = new LeetCodeScraper();
+
+export async function scrapeLeetCode(username) {
+  return await leetCodeScraper.scrape(username);
 }
