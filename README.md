@@ -2,17 +2,18 @@
 
 # 🚀 GrindMap
 
-*Repo ranked #19 @ECWoC 26*
+_Repo ranked #08 @ECWoC 26_
 
 <img src="https://img.shields.io/badge/Track%20Your-Coding%20Journey-FF6B6B?style=for-the-badge&logo=github&logoColor=white" alt="Track Your Coding Journey" />
 
 **Your Ultimate Streak & Consistency Companion for Competitive Programming**
 
-*Effortlessly monitor your progress across multiple coding platforms with beautiful visualizations and real-time analytics.*
+_Effortlessly monitor your progress across multiple coding platforms with beautiful visualizations and real-time analytics._
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Open Source](https://badges.frapsoft.com/os/v1/open-source.svg?v=102)](https://github.com/Yugenjr/GrindMap)
 [![GitHub Stars](https://img.shields.io/github/stars/Yugenjr/GrindMap?style=social)](https://github.com/Yugenjr/GrindMap)
+![Visitors](https://visitor-badge.laobi.icu/badge?page_id=Yuganjr.GrindMap)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)](https://reactjs.org/)
@@ -51,36 +52,43 @@
 <div>
 
 ### 🎯 **Multi-Platform Tracking**
+
 Track your coding journey across **7+ competitive programming platforms** with unified analytics and progress visualization.
 
 ### ⚡ **Real-Time Synchronization**
+
 Fetch live statistics using official APIs and scraping techniques, ensuring your data is always up-to-date.
 
 ### 📊 **Advanced Analytics**
+
 - **Circular Progress Rings**: Beautiful, animated progress indicators
 - **Performance Metrics**: Detailed statistics and completion percentages
 - **Difficulty Breakdown**: Easy/Medium/Hard problem distribution
 - **Rating & Ranking**: Current ratings and global rankings
 
 ### 🔥 **Streak & Consistency Tracking**
+
 - **Daily Activity Monitor**: Track submissions across all platforms
 - **Streak Counters**: Monitor consecutive days of coding activity
 - **Heatmap Visualization**: GitHub-style contribution calendar
 - **Consistency Analytics**: Identify patterns and improve habits
 
 ### 🎨 **Modern UI/UX**
+
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile
 - **Dark/Light Themes**: Eye-friendly themes for extended coding sessions
 - **Interactive Components**: Expandable cards and smooth animations
 - **Accessibility**: WCAG compliant design for inclusive experience
 
 ### 🔧 **Developer-Friendly**
+
 - **RESTful APIs**: Well-documented endpoints for data access
 - **Modular Architecture**: Easy to extend and customize
 - **Comprehensive Testing**: Unit and integration tests included
 - **Docker Support**: Containerized deployment ready
 
 ### 🌟 **Additional Features**
+
 - **Demo Mode**: Try all features with sample data
 - **Export Data**: Download your statistics as JSON/CSV
 - **Notifications**: Reminders for maintaining streaks
@@ -94,16 +102,16 @@ Fetch live statistics using official APIs and scraping techniques, ensuring your
 
 <div align="center">
 
-| Platform | Features | API Type |
-|----------|----------|----------|
-| ![LeetCode](https://img.shields.io/badge/LeetCode-FFA116?style=flat&logo=leetcode&logoColor=black) | Problems Solved, Difficulty Stats, Submissions | Official API |
-| ![CodeForces](https://img.shields.io/badge/CodeForces-1F8ACB?style=flat&logo=codeforces&logoColor=white) | Rating, Problems Solved, Contests | Scraping |
-| ![CodeChef](https://img.shields.io/badge/CodeChef-5B4638?style=flat&logo=codechef&logoColor=white) | Rating, Problems Solved, Divisions | Scraping |
-| ![AtCoder](https://img.shields.io/badge/AtCoder-FF6B35?style=flat&logo=atcoder&logoColor=white) | Rating, Problems Solved | Scraping |
-| ![GitHub](https://img.shields.io/badge/GitHub-100000?style=flat&logo=github&logoColor=white) | Contributions, Repositories | Official API |
-| ![SkillRack](https://img.shields.io/badge/SkillRack-FF6B6B?style=flat) | Problems Solved, Categories | Scraping |
+| Platform                                                                                                 | Features                                       | API Type     |
+| -------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ------------ |
+| ![LeetCode](https://img.shields.io/badge/LeetCode-FFA116?style=flat&logo=leetcode&logoColor=black)       | Problems Solved, Difficulty Stats, Submissions | Official API |
+| ![CodeForces](https://img.shields.io/badge/CodeForces-1F8ACB?style=flat&logo=codeforces&logoColor=white) | Rating, Problems Solved, Contests              | Scraping     |
+| ![CodeChef](https://img.shields.io/badge/CodeChef-5B4638?style=flat&logo=codechef&logoColor=white)       | Rating, Problems Solved, Divisions             | Scraping     |
+| ![AtCoder](https://img.shields.io/badge/AtCoder-FF6B35?style=flat&logo=atcoder&logoColor=white)          | Rating, Problems Solved                        | Scraping     |
+| ![GitHub](https://img.shields.io/badge/GitHub-100000?style=flat&logo=github&logoColor=white)             | Contributions, Repositories                    | Official API |
+| ![SkillRack](https://img.shields.io/badge/SkillRack-FF6B6B?style=flat)                                   | Problems Solved, Categories                    | Scraping     |
 
-*More platforms coming soon!*
+_More platforms coming soon!_
 
 </div>
 
@@ -114,23 +122,27 @@ Fetch live statistics using official APIs and scraping techniques, ensuring your
 <div align="center">
 
 ### Frontend
+
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
 
 ### Backend
+
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
 ![Express.js](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
 
 ### Libraries & Tools
+
 ![Axios](https://img.shields.io/badge/Axios-5A29E4?style=for-the-badge&logo=axios&logoColor=white)
 ![Puppeteer](https://img.shields.io/badge/Puppeteer-40B5A4?style=for-the-badge&logo=puppeteer&logoColor=white)
 ![React Circular Progressbar](https://img.shields.io/badge/React_Circular_Progressbar-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![React Calendar Heatmap](https://img.shields.io/badge/React_Calendar_Heatmap-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 
 ### Development Tools
+
 ![NPM](https://img.shields.io/badge/NPM-%23CB3837.svg?style=for-the-badge&logo=npm&logoColor=white)
 ![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
 ![VS Code](https://img.shields.io/badge/Visual_Studio_Code-0078D4?style=for-the-badge&logo=visual%20studio%20code&logoColor=white)
@@ -152,6 +164,7 @@ Try all features with realistic sample data - no accounts required!
 ### 🚀 How to Try the Demo
 
 1. **Clone & Install**:
+
    ```bash
    git clone https://github.com/Yugenjr/GrindMap.git
    cd GrindMap/frontend
@@ -159,6 +172,7 @@ Try all features with realistic sample data - no accounts required!
    ```
 
 2. **Start the Application**:
+
    ```bash
    npm start
    ```
@@ -174,15 +188,15 @@ Try all features with realistic sample data - no accounts required!
 
 ### 📊 Sample Data Included
 
-| Platform | Problems Solved | Rating/Rank | Difficulty Breakdown |
-|----------|-----------------|-------------|---------------------|
-| **LeetCode** | 487 | - | Easy: 245, Medium: 198, Hard: 44 |
-| **CodeForces** | 312 | Expert (1542) | - |
-| **CodeChef** | 156 | 4★ (1876) | - |
+| Platform       | Problems Solved | Rating/Rank   | Difficulty Breakdown             |
+| -------------- | --------------- | ------------- | -------------------------------- |
+| **LeetCode**   | 487             | -             | Easy: 245, Medium: 198, Hard: 44 |
+| **CodeForces** | 312             | Expert (1542) | -                                |
+| **CodeChef**   | 156             | 4★ (1876)     | -                                |
 
 ### 🎬 Demo Video
 
-*Demo video coming soon! Watch the full feature walkthrough.*
+_Demo video coming soon! Watch the full feature walkthrough._
 
 [📖 Detailed Demo Guide](DEMO.md)
 
@@ -190,10 +204,11 @@ Try all features with realistic sample data - no accounts required!
 
 ## 🚀 Quick Start
 
-### 📋 Prerequisites
+### ⚙️ Prerequisites
 
 - **Node.js** (v14 or higher) - [Download](https://nodejs.org/)
 - **npm** or **yarn** - Comes with Node.js
+- **MongoDB** (Must be running locally on port 27017)
 - **Git** - [Download](https://git-scm.com/)
 
 ### ⚡ Installation
@@ -241,7 +256,7 @@ GrindMap uses environment variables for backend configuration.
 
 Create a `.env` file inside the `backend` directory using the provided `.env.example` as reference.
 
-```bash
+````bash
 cd backend
 cp .env.example .env
 
@@ -252,9 +267,10 @@ For a containerized setup with consistent environments across machines:
 
 ```bash
 docker-compose up
-```
+````
 
 See [DOCKER_SETUP.md](DOCKER_SETUP.md) for detailed Docker instructions.
+
 ### 🌐 Access the Application
 
 - **Frontend**: http://localhost:3000
@@ -300,6 +316,7 @@ GrindMap/
 ## 🔌 API Reference
 
 ### Base URL
+
 ```
 http://localhost:5000/api
 ```
@@ -307,13 +324,16 @@ http://localhost:5000/api
 ### Endpoints
 
 #### GET `/scrape/:platform/:username`
+
 Fetch statistics for a specific platform and username.
 
 **Parameters:**
+
 - `platform`: Platform name (leetcode, codeforces, codechef, etc.)
 - `username`: User's platform username
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -330,12 +350,15 @@ Fetch statistics for a specific platform and username.
 ```
 
 #### GET `/user/:username`
+
 Get combined statistics across all platforms for a user.
 
 #### POST `/auth/login`
+
 User authentication endpoint.
 
 ### Error Response
+
 ```json
 {
   "success": false,
@@ -353,31 +376,36 @@ User authentication endpoint.
 <div>
 
 ### 🖥️ Dashboard Overview
-*Main dashboard showing multi-platform tracking with progress rings*
+
+_Main dashboard showing multi-platform tracking with progress rings_
 
 ![Dashboard](./public/screenshots/dashboard.png)
 
 ### 📊 Platform Details
-*Detailed statistics with expandable cards and difficulty breakdown*
+
+_Detailed statistics with expandable cards and difficulty breakdown_
 
 ![Platform Details](./public/screenshots/platform-details.png)
 
 ### 🔥 Activity Heatmap
-*GitHub-style contribution calendar showing submission patterns*
+
+_GitHub-style contribution calendar showing submission patterns_
 
 ![Activity Heatmap](./public/screenshots/heatmap.png)
 
 ### 📅 Daily Activity
-*Today's activity tracker with platform-wise status indicators*
+
+_Today's activity tracker with platform-wise status indicators_
 
 ![Daily Activity](./public/screenshots/today-activity.png)
 
 ### 🎮 Demo Mode
-*Interactive demo with sample data for all features*
+
+_Interactive demo with sample data for all features_
 
 ![Demo Mode](./public/screenshots/demo-mode.png)
 
-*Screenshots will be updated regularly. Last updated: January 2026*
+_Screenshots will be updated regularly. Last updated: January 2026_
 
 </div>
 
@@ -408,15 +436,15 @@ User authentication endpoint.
 
 ### 🏆 Contribution Areas
 
-| Category | Description | Difficulty |
-|----------|-------------|------------|
-| 🐛 **Bug Fixes** | Fix reported issues | 🟢 Easy |
-| ✨ **New Features** | Add platform support or features | 🟡 Medium |
-| 📚 **Documentation** | Improve docs, tutorials | 🟢 Easy |
-| 🎨 **UI/UX** | Enhance interface design | 🟡 Medium |
-| 🧪 **Testing** | Write unit/integration tests | 🟡 Medium |
-| 🌐 **i18n** | Add language support | 🔴 Hard |
-| 🔧 **DevOps** | CI/CD, Docker, deployment | 🔴 Hard |
+| Category             | Description                      | Difficulty |
+| -------------------- | -------------------------------- | ---------- |
+| 🐛 **Bug Fixes**     | Fix reported issues              | 🟢 Easy    |
+| ✨ **New Features**  | Add platform support or features | 🟡 Medium  |
+| 📚 **Documentation** | Improve docs, tutorials          | 🟢 Easy    |
+| 🎨 **UI/UX**         | Enhance interface design         | 🟡 Medium  |
+| 🧪 **Testing**       | Write unit/integration tests     | 🟡 Medium  |
+| 🌐 **i18n**          | Add language support             | 🔴 Hard    |
+| 🔧 **DevOps**        | CI/CD, Docker, deployment        | 🔴 Hard    |
 
 ### 📋 Development Guidelines
 
@@ -440,6 +468,7 @@ New to open source? Start here!
 ## 🗺️ Roadmap
 
 ### 🎯 Q1 2024 (Current)
+
 - [x] Multi-platform support (LeetCode, CodeForces, CodeChef)
 - [x] Real-time data fetching
 - [x] Interactive demo mode
@@ -448,6 +477,7 @@ New to open source? Start here!
 - [ ] Advanced analytics dashboard
 
 ### 🚀 Q2 2026
+
 - [ ] Support for 5+ additional platforms
 - [ ] User authentication & profiles
 - [ ] Data export functionality
@@ -455,13 +485,14 @@ New to open source? Start here!
 - [ ] Docker containerization
 
 ### 💫 Future Plans
+
 - [ ] AI-powered insights & recommendations
 - [ ] Team collaboration features
 - [ ] Integration with IDEs
 - [ ] Custom goal setting
 - [ ] Achievement system & badges
 
-*Roadmap is subject to change. Feel free to suggest new features!*
+_Roadmap is subject to change. Feel free to suggest new features!_
 
 ---
 
@@ -503,7 +534,7 @@ A: Make sure both frontend and backend are running. Check console for errors.
 **Q: Performance issues?**  
 A: Try clearing browser cache or using an incognito window.
 
-*Have more questions? [Open an issue](../../issues/new) or start a [discussion](../../discussions)!*
+_Have more questions? [Open an issue](../../issues/new) or start a [discussion](../../discussions)!_
 
 ---
 
@@ -548,6 +579,7 @@ SOFTWARE.
 **GrindMap wouldn't be possible without these amazing communities and tools:**
 
 ### 🎯 Platform Communities
+
 - **LeetCode** - For providing an amazing learning platform
 - **CodeForces** - Home of competitive programming excellence
 - **CodeChef** - Nurturing coding talent worldwide
@@ -555,22 +587,25 @@ SOFTWARE.
 - **GitHub** - The heart of open source collaboration
 
 ### 🛠️ Open Source Ecosystem
+
 - **React** - For the amazing frontend framework
 - **Node.js** - Powering our backend
 - **Express.js** - Simple, fast web framework
 - **MongoDB** - Flexible NoSQL database
 
 ### 👥 Contributors
+
 A huge thank you to all our [contributors](../../contributors) who make GrindMap better every day!
 
 ### 💡 Inspiration
+
 - **GitHub Contributions Graph** - For the heatmap inspiration
 - **LeetCode Progress Trackers** - For feature ideas
 - **Open Source Community** - For endless motivation
 
 ---
 
-*Made with ❤️ by the open source community*
+_Made with ❤️ by the open source community_
 
 </div>
 
@@ -590,7 +625,7 @@ A huge thank you to all our [contributors](../../contributors) who make GrindMap
 
 ### 👨‍💻 Project Maintainers
 
-- **Yugendra N** ([@Yugenjr](https://github.com/Yugenjr)) - *Project Creator & Lead Developer*
+- **Yugendra N** ([@Yugenjr](https://github.com/Yugenjr)) - _Project Creator & Lead Developer_
 
 ### 🌟 Show Your Support
 
@@ -605,7 +640,7 @@ If GrindMap helps your coding journey, consider:
 
 **Happy Coding! 🚀**
 
-*Track your progress, maintain your streaks, and level up your coding skills with GrindMap!*
+_Track your progress, maintain your streaks, and level up your coding skills with GrindMap!_
 
 </div>
 
@@ -628,11 +663,13 @@ If GrindMap helps your coding journey, consider:
 5. **Open** a Pull Request
 
 ### Good First Issues
+
 ---
 
 Looking to contribute? Check out our [Good First Issues](../../issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) - perfect for first-time contributors!
 
 ### Areas We Need Help With
+
 ---
 
 - 🐛 **Bug Fixes**: Report and fix bugs you find
@@ -653,6 +690,7 @@ Looking to contribute? Check out our [Good First Issues](../../issues?q=is%3Aiss
 ## 🐛 Reporting Issues
 
 Found a bug? Please [open an issue](../../issues/new) with:
+
 - Clear title and description
 - Steps to reproduce
 - Expected vs actual behavior
@@ -661,19 +699,18 @@ Found a bug? Please [open an issue](../../issues/new) with:
 ## 💡 Feature Requests
 
 Have an idea? [Create a feature request](../../issues/new) and describe:
+
 - The problem you're trying to solve
 - Your proposed solution
 - Alternative approaches you've considered
 
-
 ## 🏗️ Project Architecture
-
 
 GrindMap is built using a clear separation between **Frontend** and **Backend**, making
 the project scalable, maintainable, and contributor-friendly.
 
-
 ### 🔙 Backend
+
 ---
 
 The `backend/` directory handles all server-side responsibilities, including:
@@ -684,13 +721,15 @@ The `backend/` directory handles all server-side responsibilities, including:
 - Handling business logic and data transformation
 
 The backend acts as the **brain** of the system:
+
 - It gathers raw data
 - Cleans and structures it
 - Exposes it through APIs for the frontend
 
-
 ### 🎨 Frontend
+
 ---
+
 The `frontend/` directory is responsible for:
 
 - User interface (UI)
@@ -699,12 +738,13 @@ The `frontend/` directory is responsible for:
 - Providing interactive components for users
 
 The frontend acts as the **face** of the system:
+
 - It requests data from the backend
 - Converts raw data into meaningful visuals
 - Delivers a smooth and engaging user experience
 
-
 ### 🔄 Workflow Overview
+
 ---
 
 High-level flow of the application:
@@ -719,14 +759,13 @@ High-level flow of the application:
    - Renders streaks, stats, and progress
    - Updates UI based on received data
 
-
 ### 💡 This architecture ensures
+
 ---
+
 - Clear separation of concerns
 - Easier debugging and scaling
 - Smooth onboarding for new contributors
-
-
 
 ## 📝 License
 
