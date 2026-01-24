@@ -22,6 +22,7 @@ const ContributorsHallOfFame = lazy(
 );
 const UserProfile = lazy(() => import("./components/UserProfile"));
 const AuthModal = lazy(() => import("./components/AuthModal"));
+const CTAPage = lazy(() => import("./components/CTAPage"));
 const DashboardLayout = lazy(() =>
   import("./components/dashboard").then((mod) => ({
     default: mod.DashboardLayout,
@@ -46,6 +47,7 @@ function AppContent() {
   const [showContributors, setShowContributors] = useState(false);
   const [showHRDashboard, setShowHRDashboard] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showCTA, setShowCTA] = useState(false);
   const [expanded, setExpanded] = useState(null);
   const [user, setUser] = useState(null);
 
@@ -180,6 +182,10 @@ function AppContent() {
         <Suspense fallback={<LoadingFallback message="Loading contributors..." />}>
           <ContributorsHallOfFame onBack={() => setShowContributors(false)} />
         </Suspense>
+      ) : showCTA ? (
+        <Suspense fallback={<LoadingFallback message="Loading contact page..." />}>
+          <CTAPage onBack={() => setShowCTA(false)} />
+        </Suspense>
       ) : showHRDashboard ? (
         <>
           <button
@@ -302,6 +308,18 @@ function AppContent() {
               style={btnStyle}
             >
               👥 Contributors
+            </button>
+            <button
+              onClick={() => setShowCTA(true)}
+              onMouseOver={(e) =>
+                (e.currentTarget.style.background = "rgba(255,215,0,0.3)")
+              }
+              onMouseOut={(e) =>
+                (e.currentTarget.style.background = "transparent")
+              }
+              style={{ ...btnStyle, border: "1px solid #ffd700" }}
+            >
+              📞 Contact
             </button>
           </div>
 
@@ -504,16 +522,15 @@ function AppContent() {
             </div>
           </div>
         </>
-      )Suspense fallback={null}>
+      )}
+      <Suspense fallback={null}>
         {showAuthModal && (
           <AuthModal
             isOpen={showAuthModal}
             onClose={() => setShowAuthModal(false)}
           />
         )}
-      </Suspense isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-      />
+      </Suspense>
     </div>
   );
 }
