@@ -1,38 +1,37 @@
 import { jest } from '@jest/globals';
 import request from 'supertest';
 
-// ✅ Mock scraper modules using ESM-compatible mocking
-jest.unstable_mockModule('../services/scraping/leetcode.scraper.js', () => ({
+// Mock the scraper modules
+jest.mock('../services/scraping/leetcode.scraper.js', () => ({
   scrapeLeetCode: jest.fn()
 }));
 
-jest.unstable_mockModule('../services/scraping/codeforces.scraper.js', () => ({
+jest.mock('../services/scraping/codeforces.scraper.js', () => ({
   fetchCodeforcesStats: jest.fn()
 }));
 
-jest.unstable_mockModule('../services/scraping/codechef.scraper.js', () => ({
+jest.mock('../services/scraping/codechef.scraper.js', () => ({
   fetchCodeChefStats: jest.fn()
 }));
 
-// ✅ Mock normalizers
-jest.unstable_mockModule('../services/normalization/codeforces.normalizer.js', () => ({
+// Mock normalizers
+jest.mock('../services/normalization/codeforces.normalizer.js', () => ({
   normalizeCodeforces: jest.fn()
 }));
 
-jest.unstable_mockModule('../services/normalization/codechef.normalizer.js', () => ({
+jest.mock('../services/normalization/codechef.normalizer.js', () => ({
   normalizeCodeChef: jest.fn()
 }));
 
-// ✅ Import mocked functions AFTER mocking
-const { scrapeLeetCode } = await import('../services/scraping/leetcode.scraper.js');
-const { fetchCodeforcesStats } = await import('../services/scraping/codeforces.scraper.js');
-const { fetchCodeChefStats } = await import('../services/scraping/codechef.scraper.js');
+// Import mocked functions
+import { scrapeLeetCode } from '../services/scraping/leetcode.scraper.js';
+import { fetchCodeforcesStats } from '../services/scraping/codeforces.scraper.js';
+import { fetchCodeChefStats } from '../services/scraping/codechef.scraper.js';
+import { normalizeCodeforces } from '../services/normalization/codeforces.normalizer.js';
+import { normalizeCodeChef } from '../services/normalization/codechef.normalizer.js';
 
-const { normalizeCodeforces } = await import('../services/normalization/codeforces.normalizer.js');
-const { normalizeCodeChef } = await import('../services/normalization/codechef.normalizer.js');
-
-// ✅ IMPORTANT: Import app AFTER mocks
-const { default: app } = await import('../server.js');
+// Import app AFTER mocks
+import app from '../server.js';
 
 describe('API Integration Tests (Scrape Routes)', () => {
   beforeEach(() => {

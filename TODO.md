@@ -1,28 +1,3 @@
-## Overview
-Split the ScraperErrorHandler class into smaller, focused classes to follow Single Responsibility Principle.
-
-## New Classes to Create
-- [ ] ErrorClassifier - error type detection
-- [ ] RetryManager - retry logic with backoff
-- [ ] ScraperResponseBuilder - creating standardized responses
-- [ ] ScraperMetricsLogger - performance logging
-
-## Refactor ScraperErrorHandler
-- [ ] Update ScraperErrorHandler to delegate to new classes
-- [ ] Maintain same public API to minimize changes to other files
-- [ ] Remove duplicated logic from ScraperErrorHandler
-
-## Testing
-- [ ] Run existing tests to ensure no breaking changes
-- [ ] Update tests if necessary
-
-## Files to Update
-- [ ] backend/src/utils/scraperErrorHandler.js
-- [ ] Create backend/src/utils/errorClassifier.js
-- [ ] Create backend/src/utils/retryManager.js
-- [ ] Create backend/src/utils/scraperResponseBuilder.js
-- [ ] Create backend/src/utils/scraperMetricsLogger.js
-=======
 # Refactor ScraperErrorHandler - God Class Anti-Pattern
 
 ## Overview
@@ -49,3 +24,13 @@ Split the ScraperErrorHandler class into smaller, focused classes to follow Sing
 - [x] Create backend/src/utils/retryManager.js
 - [x] Create backend/src/utils/scraperResponseBuilder.js
 - [x] Create backend/src/utils/scraperMetricsLogger.js
+# Refactor Scraper Code Duplication
+
+## Tasks
+- [ ] Create BaseScraper class in `backend/src/services/scraping/baseScraper.js`
+- [ ] Refactor LeetCode scraper to extend BaseScraper
+- [ ] Refactor Codeforces scraper to extend BaseScraper
+- [ ] Refactor CodeChef scraper to extend BaseScraper
+- [ ] Test refactored scrapers
+- [ ] Update imports/references if needed
+- [ ] Verify all functionality preserved

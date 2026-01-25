@@ -1,46 +1,37 @@
 import { body, param, validationResult } from 'express-validator';
 import xss from 'xss';
 import { escapeString } from '../utils/dbSanitizer.js';
-import { AppError } from '../utils/appError.js';
+import { AppError, ERROR_CODES } from '../utils/appError.js';
+import { HTTP_STATUS, VALIDATION } from '../constants/app.constants.js';
+import { asyncMiddleware } from '../utils/asyncWrapper.js';
+
+const sanitizeValue = (value) => escapeString(xss(value.trim()));
+
+// Reuse the same sanitizer logic for params, query, and body payloads
+const sanitizeObject = (source) => {
+  if (!source || typeof source !== 'object') {
+    return;
+  }
+
+  Object.keys(source).forEach((key) => {
+    if (typeof source[key] === 'string') {
+      source[key] = sanitizeValue(source[key]);
+    }
+  });
+};
 
 // Sanitization middleware
 const sanitizeInput = (req, res, next) => {
-  // Sanitize params
-  Object.keys(req.params).forEach(key => {
-    if (typeof req.params[key] === 'string') {
-      req.params[key] = escapeString(xss(req.params[key].trim()));
-    }
-  });
-
-  // Sanitize query
-  Object.keys(req.query).forEach(key => {
-    if (typeof req.query[key] === 'string') {
-      req.query[key] = escapeString(xss(req.query[key].trim()));
-    }
-  });
-
-  // Sanitize body
-  if (req.body && typeof req.body === 'object') {
-    Object.keys(req.body).forEach(key => {
-      if (typeof req.body[key] === 'string') {
-        req.body[key] = escapeString(xss(req.body[key].trim()));
-      }
-    });
-
-    // Sanitize request body
-    if (req.body && typeof req.body === 'object') {
-      Object.keys(req.body).forEach(key => {
-        if (typeof req.body[key] === 'string') {
-          req.body[key] = xss(req.body[key].trim());
-        }
-      });
-    }
+  try {
+    sanitizeObject(req.params);
+    sanitizeObject(req.query);
+    sanitizeObject(req.body);
 
     next();
   } catch (error) {
     throw new AppError('Input sanitization failed', HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR);
   }
-});
+};
 
 /**
  * Validation error handler middleware

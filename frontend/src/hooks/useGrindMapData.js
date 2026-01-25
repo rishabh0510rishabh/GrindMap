@@ -82,6 +82,9 @@ export const useGrindMapData = () => {
             badges: result.data.badges,
             activity: result.data.recentActivity
           };
+        } else {
+          data = { error: result.error || "User not found" };
+        }
       } else if (plat.key === "hackerrank") {
         const res = await fetch(
           `${API_BASE_URL}/api/scrape/hackerrank/${username}`,
@@ -134,6 +137,7 @@ export const useGrindMapData = () => {
         return Math.round((data.rating / 3000) * 100);
       }
       return data.solved ? Math.min(Math.round((data.solved / 500) * 100), 100) : 0;
+    }
     if (platKey === "hackerrank") {
       return data.badges
         ? Math.min(Math.round((data.badges.length / 10) * 100), 100)
@@ -169,8 +173,6 @@ export const useGrindMapData = () => {
     (platformData.codeforces?.solved || 0) +
     (platformData.codechef?.problem_fully_solved || 0) +
     (platformData.hackerearth?.solved || 0);
-    (platformData.codeforces?.totalSolved || 0) +
-    (platformData.codechef?.problem_fully_solved || 0);
 
   return {
     usernames,
