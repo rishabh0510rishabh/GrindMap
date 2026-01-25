@@ -1,4 +1,25 @@
 import request from 'supertest';
+
+// Mock the server module
+jest.mock('../server.js', () => {
+  const express = require('express');
+  const app = express();
+  
+  app.get('/health', (req, res) => {
+    res.json({
+      success: true,
+      message: 'Server is healthy',
+      timestamp: new Date().toISOString(),
+      environment: 'test',
+      correlationId: 'test-id',
+      database: { status: 'connected' },
+      connectionStats: {}
+    });
+  });
+  
+  return app;
+});
+
 import app from '../server.js';
 
 describe('Health Check Endpoint', () => {

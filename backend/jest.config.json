@@ -10,5 +10,8 @@
     "!src/server.js"
   ],
   "coverageDirectory": "coverage",
-  "coverageReporters": ["text", "lcov", "html"]
+  "coverageReporters": ["text", "lcov", "html"],
+  "transform": {
+    "^.+\\.js$": "babel-jest"
+  }
 }

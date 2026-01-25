@@ -196,6 +196,8 @@ const PlatformCard = ({
                 Recent Activity: <strong>{data.activity || 0}</strong>
               </p>
             </div>
+          )}
+
           {platform.key === "hackerrank" && (
             <HREnhancedCard data={data} username={data?.username || "user"} />
           )}

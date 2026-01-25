@@ -23,6 +23,3 @@ export const memoryMiddleware = (req, res, next) => {
   
   next();
 };
-
-// Legacy export for backward compatibility
-export const memoryMonitor = memoryMiddleware;
