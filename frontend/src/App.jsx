@@ -5,6 +5,7 @@ import Register from "./components/Register";
 import Dashboard from "./components/Dashboard";
 import Profile from "./components/Profile";
 import ActivityHistory from "./components/ActivityHistory";
+import PlatformManager from "./components/PlatformManager";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -45,6 +46,15 @@ function App() {
           element={
             <ProtectedRoute>
               <ActivityHistory />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/platforms"
+          element={
+            <ProtectedRoute>
+              <PlatformManager />
             </ProtectedRoute>
           }
         />

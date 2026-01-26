@@ -339,4 +339,288 @@ export const activityAPI = {
   },
 };
 
+// Mock platform connections data
+const mockPlatformConnections = [
+  {
+    id: '1',
+    platformId: 'leetcode',
+    name: 'LeetCode',
+    username: 'demo_user',
+    connected: true,
+    status: 'connected',
+    lastSync: new Date(Date.now() - 30 * 60000).toISOString(), // 30 minutes ago
+    problemsSynced: 156,
+    lastSyncError: null,
+    syncing: false,
+    requiresApiKey: false,
+    requiresToken: false,
+    settings: {
+      syncProblems: true,
+      syncSubmissions: true,
+      syncContests: false,
+      autoSync: true,
+    },
+  },
+  {
+    id: '2',
+    platformId: 'codeforces',
+    name: 'Codeforces',
+    username: 'demo_user',
+    connected: true,
+    status: 'connected',
+    lastSync: new Date(Date.now() - 2 * 3600000).toISOString(), // 2 hours ago
+    problemsSynced: 89,
+    lastSyncError: null,
+    syncing: false,
+    requiresApiKey: true,
+    requiresToken: false,
+    settings: {
+      syncProblems: true,
+      syncSubmissions: true,
+      syncContests: true,
+      autoSync: true,
+    },
+  },
+  {
+    id: '3',
+    platformId: 'github',
+    name: 'GitHub',
+    username: '',
+    connected: false,
+    status: 'disconnected',
+    lastSync: null,
+    problemsSynced: 0,
+    lastSyncError: null,
+    syncing: false,
+    requiresApiKey: false,
+    requiresToken: true,
+    settings: {
+      syncProblems: true,
+      syncSubmissions: false,
+      syncContests: false,
+      autoSync: false,
+    },
+  },
+];
+
+// Mock platform API functions
+const mockGetPlatforms = () => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        data: {
+          platforms: mockPlatformConnections,
+          total: mockPlatformConnections.length,
+        },
+      });
+    }, 500);
+  });
+};
+
+const mockConnectPlatform = (platformId, credentials) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (!credentials.username) {
+        reject({
+          response: {
+            data: { message: 'Username is required' },
+          },
+        });
+        return;
+      }
+
+      const platform = mockPlatformConnections.find(p => p.platformId === platformId);
+      if (platform) {
+        platform.connected = true;
+        platform.status = 'connected';
+        platform.username = credentials.username;
+        platform.lastSync = new Date().toISOString();
+        resolve({
+          data: {
+            message: 'Platform connected successfully',
+            platform: platform,
+          },
+        });
+      } else {
+        // Add new platform
+        const newPlatform = {
+          id: String(mockPlatformConnections.length + 1),
+          platformId: platformId,
+          name: platformId.charAt(0).toUpperCase() + platformId.slice(1),
+          username: credentials.username,
+          connected: true,
+          status: 'connected',
+          lastSync: new Date().toISOString(),
+          problemsSynced: 0,
+          lastSyncError: null,
+          syncing: false,
+          settings: {
+            syncProblems: true,
+            syncSubmissions: true,
+            syncContests: false,
+            autoSync: true,
+          },
+        };
+        mockPlatformConnections.push(newPlatform);
+        resolve({
+          data: {
+            message: 'Platform connected successfully',
+            platform: newPlatform,
+          },
+        });
+      }
+    }, 800);
+  });
+};
+
+const mockDisconnectPlatform = (platformId) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const platform = mockPlatformConnections.find(p => p.id === platformId);
+      if (platform) {
+        platform.connected = false;
+        platform.status = 'disconnected';
+        platform.lastSync = null;
+      }
+      resolve({
+        data: {
+          message: 'Platform disconnected successfully',
+        },
+      });
+    }, 500);
+  });
+};
+
+const mockTestConnection = (platformId, credentials) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (!credentials.username) {
+        reject({
+          response: {
+            data: { message: 'Username is required for testing' },
+          },
+        });
+        return;
+      }
+
+      // Simulate random success/failure for demo
+      const success = Math.random() > 0.2; // 80% success rate
+      if (success) {
+        resolve({
+          data: {
+            success: true,
+            message: 'Connection test successful! Found user profile.',
+          },
+        });
+      } else {
+        resolve({
+          data: {
+            success: false,
+            message: 'Connection test failed. Please check your credentials.',
+          },
+        });
+      }
+    }, 1500);
+  });
+};
+
+const mockSyncPlatform = (platformId) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const platform = mockPlatformConnections.find(p => p.id === platformId);
+      if (platform) {
+        const synced = Math.floor(Math.random() * 20) + 5; // 5-25 problems synced
+        platform.problemsSynced += synced;
+        platform.lastSync = new Date().toISOString();
+        platform.lastSyncError = null;
+        resolve({
+          data: {
+            message: 'Sync completed successfully',
+            synced: synced,
+          },
+        });
+      }
+    }, 2000);
+  });
+};
+
+const mockUpdateSettings = (platformId, settings) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const platform = mockPlatformConnections.find(p => p.id === platformId);
+      if (platform) {
+        platform.settings = { ...platform.settings, ...settings };
+      }
+      resolve({
+        data: {
+          message: 'Settings updated successfully',
+        },
+      });
+    }, 500);
+  });
+};
+
+// Platform API
+export const platformAPI = {
+  getPlatforms: async () => {
+    try {
+      const response = await api.get('/platforms');
+      return response;
+    } catch (error) {
+      console.log('Using mock platform data');
+      return mockGetPlatforms();
+    }
+  },
+
+  connectPlatform: async (platformId, credentials) => {
+    try {
+      const response = await api.post(`/platforms/${platformId}/connect`, credentials);
+      return response;
+    } catch (error) {
+      console.log('Using mock connect platform');
+      return mockConnectPlatform(platformId, credentials);
+    }
+  },
+
+  disconnectPlatform: async (platformId) => {
+    try {
+      const response = await api.post(`/platforms/${platformId}/disconnect`);
+      return response;
+    } catch (error) {
+      console.log('Using mock disconnect platform');
+      return mockDisconnectPlatform(platformId);
+    }
+  },
+
+  testConnection: async (platformId, credentials) => {
+    try {
+      const response = await api.post(`/platforms/${platformId}/test`, credentials);
+      return response;
+    } catch (error) {
+      console.log('Using mock test connection');
+      return mockTestConnection(platformId, credentials);
+    }
+  },
+
+  syncPlatform: async (platformId) => {
+    try {
+      const response = await api.post(`/platforms/${platformId}/sync`);
+      return response;
+    } catch (error) {
+      console.log('Using mock sync platform');
+      return mockSyncPlatform(platformId);
+    }
+  },
+
+  updateSettings: async (platformId, settings) => {
+    try {
+      const response = await api.put(`/platforms/${platformId}/settings`, settings);
+      return response;
+    } catch (error) {
+      console.log('Using mock update settings');
+      return mockUpdateSettings(platformId, settings);
+    }
+  },
+};
+
 export default api;
