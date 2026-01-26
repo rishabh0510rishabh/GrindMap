@@ -1,89 +1,60 @@
-import jwt from 'jsonwebtoken';
-import { AppError } from '../utils/appError.js';
+import jwt from "jsonwebtoken";
+import { AppError, ERROR_CODES } from "../utils/appError.js";
+import { asyncMiddleware } from "../utils/asyncWrapper.js";
+import config from "../config/env.js";
+import User from "../models/user.model.js";
 
-// Authentication bypass protection
-export const authBypassProtection = (req, res, next) => {
-  const suspiciousPatterns = [
-    /admin/i,
-    /root/i,
-    /bypass/i,
-    /\.\.\/\.\.\//,
-    /null/i,
-    /undefined/i,
-    /'or'1'='1'/i,
-    /union\s+select/i
-  ];
+export const protect = asyncMiddleware(async (req, res, next) => {
+  let token;
 
-  const checkValue = (value) => {
-    if (!value) return false;
-    return suspiciousPatterns.some(pattern => pattern.test(value));
-  };
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    try {
+      token = req.headers.authorization.split(" ")[1];
 
-  // Check headers
-  const authHeader = req.headers.authorization;
-  if (authHeader && checkValue(authHeader)) {
-    return next(new AppError('Suspicious authentication attempt detected', 401));
-  }
-
-  // Check query parameters
-  for (const [key, value] of Object.entries(req.query)) {
-    if (checkValue(key) || checkValue(value)) {
-      return next(new AppError('Suspicious query parameter detected', 400));
-    }
-  }
-
-  // Check body parameters
-  if (req.body && typeof req.body === 'object') {
-    const checkObject = (obj) => {
-      for (const [key, value] of Object.entries(obj)) {
-        if (checkValue(key) || (typeof value === 'string' && checkValue(value))) {
-          return true;
-        }
-        if (typeof value === 'object' && value !== null && checkObject(value)) {
-          return true;
-        }
+      const decoded = jwt.verify(token, config.JWT_SECRET);
+      
+      // Fetch user with role
+      const user = await User.findById(decoded.id).select("role");
+      if (!user) {
+        throw new AppError("User not found", 401, ERROR_CODES.INVALID_TOKEN);
       }
-      return false;
-    };
+      
+      req.user = { id: decoded.id, role: user.role };
 
-    if (checkObject(req.body)) {
-      return next(new AppError('Suspicious request body detected', 400));
+      next();
+    } catch (error) {
+      throw new AppError("Not authorized, token failed", 401, ERROR_CODES.INVALID_TOKEN);
     }
+  } else {
+    throw new AppError("Not authorized, no token", 401, ERROR_CODES.INVALID_TOKEN);
   }
+});
 
-  next();
-};
-
-// JWT token validation
-export const validateToken = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  
-  if (!token) {
-    return next();
-  }
-
-  try {
-    // Basic token format validation
-    if (token.length < 10 || token.length > 2048) {
-      return next(new AppError('Invalid token format', 401));
+/**
+ * Restrict access to specific roles
+ * Usage: restrictTo('admin', 'moderator')
+ */
+export const restrictTo = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user || !req.user.role) {
+      throw new AppError(
+        "You are not authorized to access this resource",
+        403,
+        ERROR_CODES.FORBIDDEN
+      );
     }
 
-    // Check for suspicious token patterns
-    const suspiciousTokenPatterns = [
-      /^null$/i,
-      /^undefined$/i,
-      /^admin$/i,
-      /^test$/i,
-      /^debug$/i
-    ];
-
-    if (suspiciousTokenPatterns.some(pattern => pattern.test(token))) {
-      return next(new AppError('Suspicious token detected', 401));
+    if (!roles.includes(req.user.role)) {
+      throw new AppError(
+        `Access denied. Required role: ${roles.join(" or ")}`,
+        403,
+        ERROR_CODES.FORBIDDEN
+      );
     }
 
-    req.token = token;
     next();
-  } catch (error) {
-    next(new AppError('Token validation failed', 401));
-  }
+  };
 };
