@@ -1,12 +1,12 @@
 import express from 'express';
 import ScrapeController from '../controllers/scrape.controller.js';
-import { validateUsername } from '../middlewares/validation.middleware.js';
+import { scrapingTimeout } from '../middlewares/requestTimeout.middleware.js';
 import { validateUsername as validateUsernameInput, sanitizeUsername } from '../middlewares/inputValidation.middleware.js';
-import { scrapingLimiter } from '../middlewares/rateLimiter.middleware.js';
-import { platformCache, userCache } from '../middlewares/cache.middleware.js';
+import { advancedRateLimit, scrapingRateLimit } from '../middlewares/antiBypassRateLimit.middleware.js';
+import { apiResponseCache } from '../middlewares/apiCache.middleware.js';
 import { auditLogger } from '../middlewares/audit.middleware.js';
 import { enforceScrapingQuota } from '../middlewares/quota.middleware.js';
-
+import { scrapingLimiter } from '../middlewares/rateLimiter.middleware.js';
 const router = express.Router();
 
 // Apply input validation and sanitization to all username routes
@@ -19,11 +19,12 @@ router.use('/:platform/:username', validateUsernameInput, sanitizeUsername);
  */
 router.get(
   '/leetcode/:username',
-  scrapingLimiter,
+  scrapingTimeout,
+  scrapingRateLimit,
   validateUsername,
   enforceScrapingQuota,
   auditLogger('FETCH_LEETCODE_STATS'),
-  platformCache,
+  apiResponseCache(900),
   ScrapeController.getLeetCodeStats
 );
 
@@ -34,10 +35,11 @@ router.get(
  */
 router.get(
   '/codeforces/:username',
-  scrapingLimiter,
+  scrapingTimeout,
+  scrapingRateLimit,
   validateUsername,
   auditLogger('FETCH_CODEFORCES_STATS'),
-  platformCache, // 15 minutes cache
+  apiResponseCache(900),
   ScrapeController.getCodeforcesStats
 );
 
@@ -48,10 +50,11 @@ router.get(
  */
 router.get(
   '/codechef/:username',
-  scrapingLimiter,
+  scrapingTimeout,
+  scrapingRateLimit,
   validateUsername,
   auditLogger('FETCH_CODECHEF_STATS'),
-  platformCache, // 15 minutes cache
+  apiResponseCache(900),
   ScrapeController.getCodeChefStats
 );
 
@@ -62,11 +65,26 @@ router.get(
  */
 router.get(
   '/atcoder/:username',
-  scrapingLimiter,
+  scrapingTimeout,
+  scrapingRateLimit,
   validateUsername,
   auditLogger('FETCH_ATCODER_STATS'),
-  platformCache, // 15 minutes cache
+  apiResponseCache(900),
   ScrapeController.getAtCoderStats
+);
+
+/**
+ * @route   GET /api/scrape/hackerearth/:username
+ * @desc    Get HackerEarth user statistics
+ * @access  Public (rate limited + cached + audited)
+ */
+router.get(
+  '/hackerearth/:username',
+  scrapingLimiter,
+  validateUsername,
+  auditLogger('FETCH_HACKEREARTH_STATS'),
+  platformCache, // 15 minutes cache
+  ScrapeController.getHackerEarthStats
 );
 
 /**
@@ -76,10 +94,11 @@ router.get(
  */
 router.get(
   '/github/:username',
-  scrapingLimiter,
+  scrapingTimeout,
+  scrapingRateLimit,
   validateUsername,
   auditLogger('FETCH_GITHUB_STATS'),
-  platformCache, // 15 minutes cache
+  apiResponseCache(1800),
   ScrapeController.getGitHubStats
 );
 
@@ -90,11 +109,26 @@ router.get(
  */
 router.get(
   '/skillrack/:username',
-  scrapingLimiter,
+  scrapingTimeout,
+  scrapingRateLimit,
   validateUsername,
   auditLogger('FETCH_SKILLRACK_STATS'),
-  platformCache, // 15 minutes cache
+  apiResponseCache(900),
   ScrapeController.getSkillRackStats
+);
+
+/**
+ * @route   GET /api/scrape/hackerrank/:username
+ * @desc    Get HackerRank user statistics
+ * @access  Public (rate limited + cached + audited)
+ */
+router.get(
+  '/hackerrank/:username',
+  scrapingLimiter,
+  validateUsername,
+  auditLogger('FETCH_HACKERRANK_STATS'),
+  platformCache, // 15 minutes cache
+  ScrapeController.getHackerRankStats
 );
 
 /**
@@ -103,8 +137,11 @@ router.get(
  * @access  Public (cached)
  */
 router.get(
-  '/platforms', 
+  '/platforms',
   platformCache, // 15 minutes cache
+  '/platforms', 
+  advancedRateLimit,
+  apiResponseCache(3600),
   ScrapeController.getSupportedPlatforms
 );
 

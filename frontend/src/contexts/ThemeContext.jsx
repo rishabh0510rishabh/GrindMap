@@ -25,6 +25,29 @@ export const themes = {
       }
     }
   },
+  navyOrange: {
+    name: 'Navy & Orange',
+    colors: {
+      primary: '#f97316',
+      secondary: '#fb923c',
+      background: '#020617',
+      surface: '#0b1120',
+      text: '#e5e7eb',
+      textSecondary: '#9ca3af',
+      border: '#1f2937',
+      shadow: 'rgba(15, 23, 42, 0.8)',
+      success: '#22c55e',
+      warning: '#f59e0b',
+      error: '#ef4444',
+      info: '#3b82f6',
+      progress: '#f97316',
+      heatmap: {
+        low: '#1e293b',
+        medium: '#f97316',
+        high: '#ffedd5'
+      }
+    }
+  },
   dark: {
     name: 'Dark',
     colors: {
@@ -153,7 +176,7 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider = ({ children }) => {
-  const [currentTheme, setCurrentTheme] = useState('light');
+  const [currentTheme, setCurrentTheme] = useState('navyOrange');
   const [customColors, setCustomColors] = useState({});
 
   // Load theme from localStorage on mount

@@ -1,33 +1,25 @@
-import { asyncMiddleware } from '../utils/asyncWrapper.js';
+import { memoryMonitor } from '../services/memoryMonitor.service.js';
 
-/**
- * Memory monitoring middleware with async error handling
- */
-const memoryMonitor = asyncMiddleware(async (req, res, next) => {
-  try {
-    const memUsage = process.memoryUsage();
-    const memoryThreshold = 500 * 1024 * 1024; // 500MB
-
-    // Log memory usage if above threshold
-    if (memUsage.heapUsed > memoryThreshold) {
-      console.warn('⚠️ HIGH MEMORY USAGE:', {
-        heapUsed: `${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`,
-        heapTotal: `${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`,
-        external: `${Math.round(memUsage.external / 1024 / 1024)}MB`,
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Force garbage collection if memory is critically high
-    if (memUsage.heapUsed > memoryThreshold * 2 && global.gc) {
-      global.gc();
-    }
-
-    next();
-  } catch (error) {
-    console.error('Memory monitoring error:', error);
-    next(); // Continue even if monitoring fails
+export const memoryMiddleware = (req, res, next) => {
+  const memUsage = process.memoryUsage();
+  const memUsedMB = memUsage.heapUsed / 1024 / 1024;
+  const heapUsageRatio = memUsage.heapUsed / memUsage.heapTotal;
+  
+  // Block requests if memory is critically high
+  if (heapUsageRatio > 0.95) {
+    console.warn(`🚨 Request blocked due to critical memory usage: ${Math.round(heapUsageRatio * 100)}%`);
+    return res.status(503).json({
+      error: 'Service temporarily unavailable - critical memory usage',
+      memoryUsage: `${memUsedMB.toFixed(2)}MB`,
+      heapUsage: `${Math.round(heapUsageRatio * 100)}%`
+    });
   }
-});
-
-export { memoryMonitor };
+  
+  // Add memory info to request for monitoring
+  req.memoryUsage = {
+    heapUsed: memUsedMB,
+    heapUsagePercent: Math.round(heapUsageRatio * 100)
+  };
+  
+  next();
+};
