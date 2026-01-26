@@ -10,6 +10,9 @@ import {
     cancelFriendRequest
 } from "../controllers/friends.controller.js";
 import { protect } from "../middlewares/auth.middleware.js";
+import { validateFriendRequest } from "../middlewares/validation.middleware.js";
+import { param } from "express-validator";
+import { handleValidationErrors } from "../middlewares/validation.middleware.js";
 
 const router = express.Router();
 
@@ -21,21 +24,27 @@ router.use(protect);
  * @desc    Send a friend request
  * @access  Private
  */
-router.post("/request", sendFriendRequest);
+router.post("/request", validateFriendRequest, sendFriendRequest);
 
 /**
  * @route   POST /api/friends/accept/:requestId
  * @desc    Accept a friend request
  * @access  Private
  */
-router.post("/accept/:requestId", acceptFriendRequest);
+router.post("/accept/:requestId", [
+  param('requestId').isMongoId().withMessage('Invalid request ID format').escape(),
+  handleValidationErrors
+], acceptFriendRequest);
 
 /**
  * @route   POST /api/friends/reject/:requestId
  * @desc    Reject a friend request
  * @access  Private
  */
-router.post("/reject/:requestId", rejectFriendRequest);
+router.post("/reject/:requestId", [
+  param('requestId').isMongoId().withMessage('Invalid request ID format').escape(),
+  handleValidationErrors
+], rejectFriendRequest);
 
 /**
  * @route   GET /api/friends/requests/pending
@@ -56,7 +65,10 @@ router.get("/requests/sent", getSentRequests);
  * @desc    Cancel a sent friend request
  * @access  Private
  */
-router.delete("/request/:requestId", cancelFriendRequest);
+router.delete("/request/:requestId", [
+  param('requestId').isMongoId().withMessage('Invalid request ID format').escape(),
+  handleValidationErrors
+], cancelFriendRequest);
 
 /**
  * @route   GET /api/friends
@@ -70,6 +82,9 @@ router.get("/", getFriends);
  * @desc    Remove a friend
  * @access  Private
  */
-router.delete("/:friendId", removeFriend);
+router.delete("/:friendId", [
+  param('friendId').isMongoId().withMessage('Invalid friend ID format').escape(),
+  handleValidationErrors
+], removeFriend);
 
 export default router;

@@ -47,20 +47,23 @@ import advancedCacheRoutes from './routes/advancedCache.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
 import securityRoutes from './routes/security.routes.js';
-import healthRoutes from './routes/health.routes.js';
-import { secureLogger, secureErrorHandler } from './middlewares/secureLogging.middleware.js';
-import { validateEnvironment } from './config/environment.js';
-import { connectionManager } from './utils/connectionManager.js';
-import { memoryMonitor } from './services/memoryMonitor.service.js';
-import { cpuMonitor } from './services/cpuMonitor.service.js';
-import { bandwidthMonitor } from './services/bandwidthMonitor.service.js';
-import { processLimiter } from './utils/processLimiter.js';
-import { cacheManager } from './utils/cacheManager.js';
-import { gracefulShutdown } from './utils/shutdown.util.js';
-import { authBypassProtection, validateToken } from './middlewares/auth.middleware.js';
-import { fileUploadSecurity, validateFileExtensions, detectEncodedFiles } from './middlewares/fileUpload.middleware.js';
-import { apiVersionSecurity, deprecationWarning, validateApiEndpoint, versionRateLimit } from './middlewares/apiVersion.middleware.js';
-import { csrfProtection, csrfTokenEndpoint } from './middlewares/csrf.middleware.js';
+import databaseRoutes from './routes/database.routes.js';
+import websocketRoutes from './routes/websocket.routes.js';
+import quotaRoutes from './routes/quota.routes.js';
+import jobsRoutes from './routes/jobs.routes.js';
+import monitoringRoutes from './routes/monitoring.routes.js';
+import grindRoomRoutes from './routes/grindRoom.routes.js';
+import tournamentRoutes from './routes/tournament.routes.js';
+import duelRoutes from './routes/duel.routes.js';
+import mentorshipRoutes from './routes/mentorship.routes.js';
+
+import monitoringRoutes from './routes/monitoring.routes.js';
+// Import secure logger to prevent JWT exposure
+
+import './utils/secureLogger.js';
+// Import constants
+import { HTTP_STATUS, ENVIRONMENTS } from './constants/app.constants.js';
+import Logger from './utils/logger.js';
 
 // Set default NODE_ENV if not provided
 if (!process.env.NODE_ENV) {
@@ -215,47 +218,65 @@ app.get('/api/leetcode/:username',
       data,
       traceId: req.traceId
     });
-  })
-);
+  } catch (error) {
+    Logger.error('Health check failed', { error: error.message });
+    res.status(503).json({
+      success: false,
+      message: 'Server unhealthy',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
 
-app.get('/api/codeforces/:username',
-  scrapingBodyLimit,
-  scrapingSizeLimit,
-  scrapingTimeout,
-  heavyOperationProtection,
-  csrfProtection,
-  validateUsername,
-  asyncHandler(async (req, res) => {
-    const { username } = req.params;
-    const raw = await backpressureManager.process(() =>
-      withTrace(req.traceId, "codeforces.scrape", () =>
-        fetchCodeforcesStats(username)
-      )
-    );
-    const normalized = normalizeCodeforces({ ...raw, username });
-    res.json({ success: true, data: normalized, traceId: req.traceId });
-  })
-);
+// API routes
+app.use('/api/scrape', scrapeRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/cache', cacheRoutes);
+app.use('/api/advanced-cache', advancedCacheRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/security', securityRoutes);
+app.use('/api/database', databaseRoutes);
+app.use('/api/websocket', websocketRoutes);
+app.use('/api/quota', quotaRoutes);
+app.use('/api/upload', fileUploadRoutes);
+app.use('/api/job-monitoring', jobMonitoringRoutes);
+app.use('/api/monitoring', monitoringRoutes);
+app.use('/api/rooms', grindRoomRoutes);
+app.use('/api/tournaments', tournamentRoutes);
+app.use('/api/duels', duelRoutes);
+app.use('/api/mentorship', mentorshipRoutes);
 
-app.get('/api/codechef/:username',
-  scrapingBodyLimit,
-  scrapingSizeLimit,
-  scrapingTimeout,
-  heavyOperationProtection,
-  csrfProtection,
-  validateUsername,
-  asyncHandler(async (req, res) => {
-    const { username } = req.params;
-    const raw = await backpressureManager.process(() =>
-      withTrace(req.traceId, "codechef.scrape", () =>
-        fetchCodeChefStats(username)
-      )
-    );
-    const normalized = normalizeCodeChef({ ...raw, username });
-    res.json({ success: true, data: normalized, traceId: req.traceId });
-  })
-);
+// API documentation endpoint
+app.get('/api', (req, res) => {
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: 'GrindMap API v1.0',
+    documentation: '/api/docs',
+    endpoints: {
+      scraping: '/api/scrape',
+      authentication: '/api/auth',
+      cache: '/api/cache',
+      advancedCache: '/api/advanced-cache',
+      notifications: '/api/notifications',
+      analytics: '/api/analytics',
+      websocket: '/ws',
+      websocketAPI: '/api/websocket',
+      quota: '/api/quota',
+      jobs: '/api/jobs',
+      monitoring: '/api/monitoring',
+      tournaments: '/api/tournaments',
+      duels: '/api/duels',
+      mentorship: '/api/mentorship',
+      health: '/health',
+      database: '/api/database',
+    },
+    correlationId: req.correlationId,
+  });
+});
 
+// 404 handler for undefined routes
 app.use(notFound);
 app.use(secureErrorHandler);
 app.use(errorHandler);

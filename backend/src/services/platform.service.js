@@ -8,9 +8,7 @@ import { fetchSkillRackStats } from './scraping/skillrack.scraper.js';
 import { scrapeHackerEarth } from './scraping/hackerearth.scraper.js';
 import { normalizeCodeforces } from './normalization/codeforces.normalizer.js';
 import { normalizeCodeChef } from './normalization/codechef.normalizer.js';
-import { normalizeHackerEarth } from './normalization/hackerearth.normalizer.js';
-import { scrapeHackerRank } from './scraping/hackerrank.scraper.js';
-import { normalizeHackerRank } from './normalization/hackerrank.normalizer.js';
+import { normalizeLeetCode } from './normalization/leetcode.normalizer.js';
 import { PLATFORMS, MESSAGES } from '../constants/app.constants.js';
 import { AppError, ERROR_CODES } from '../utils/appError.js';
 import APICache from '../utils/apiCache.js';
@@ -51,10 +49,13 @@ class PlatformService {
 
     try {
       const scraperResult = await scrapeLeetCode(username);
+      const normalizedData = normalizeLeetCode({ username, data: scraperResult.data });
       const result = {
         platform: PLATFORMS.LEETCODE,
         username,
-        ...scraperResult,
+        ...normalizedData,
+        fromCache: scraperResult.fromCache,
+        fromFallback: scraperResult.fromFallback
       };
 
       // Cache with advanced manager and tags
