@@ -4,7 +4,7 @@ import Login from "./components/Login";
 import Register from "./components/Register";
 import Dashboard from "./components/Dashboard";
 import Profile from "./components/Profile";
-import Settings from "./components/Settings";
+import ActivityHistory from "./components/ActivityHistory";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -41,10 +41,10 @@ function App() {
         />
 
         <Route
-          path="/settings"
+          path="/activity"
           element={
             <ProtectedRoute>
-              <Settings />
+              <ActivityHistory />
             </ProtectedRoute>
           }
         />
