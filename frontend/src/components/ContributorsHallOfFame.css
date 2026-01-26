@@ -486,7 +486,7 @@
   left: 0;
   right: 0;
   height: 6px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
+  background: linear-gradient(90deg, var(--theme-primary), var(--theme-secondary));
   opacity: 0;
   transition: opacity 0.3s ease;
 }
