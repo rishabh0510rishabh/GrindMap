@@ -150,6 +150,111 @@ const mockDeleteAccount = () => {
   });
 };
 
+// Mock settings storage
+let mockSettings = {
+  notifications: {
+    emailNotifications: true,
+    pushNotifications: false,
+    dailyReminders: true,
+    weeklyDigest: true,
+    streakReminders: true,
+    reminderFrequency: 'daily',
+    reminderTime: '09:00',
+  },
+  privacy: {
+    profileVisibility: 'public',
+    showEmail: false,
+    showStats: true,
+    showBadges: true,
+    showActivity: true,
+    allowDataSharing: false,
+    allowAnalytics: true,
+  },
+  display: {
+    theme: 'light',
+    dashboardLayout: 'grid',
+    showAnimations: true,
+    compactMode: false,
+    fontSize: 'medium',
+    language: 'en',
+  },
+  platform: {
+    autoSync: true,
+    syncFrequency: 'hourly',
+    notifyOnSync: false,
+    connectedPlatforms: [],
+  },
+  security: {
+    twoFactorEnabled: false,
+    sessionTimeout: 30,
+    showActiveSessions: true,
+    loginAlerts: true,
+  },
+  activeSessions: [
+    {
+      id: '1',
+      device: 'Chrome on Windows',
+      location: 'New York, USA',
+      lastActive: '2 minutes ago',
+      current: true,
+    },
+  ],
+};
+
+// Mock get settings
+const mockGetSettings = () => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({ data: mockSettings });
+    }, 500);
+  });
+};
+
+// Mock update settings
+const mockUpdateSettings = (settingsData) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      mockSettings = { ...mockSettings, ...settingsData };
+      resolve({ data: { message: 'Settings updated successfully', settings: mockSettings } });
+    }, 500);
+  });
+};
+
+// Mock export data
+const mockExportData = (format) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const userData = {
+        user: JSON.parse(localStorage.getItem('user') || '{}'),
+        settings: mockSettings,
+        exportDate: new Date().toISOString(),
+        format: format,
+      };
+      resolve({ data: userData });
+    }, 500);
+  });
+};
+
+// Mock terminate session
+const mockTerminateSession = (sessionId) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      mockSettings.activeSessions = mockSettings.activeSessions.filter(s => s.id !== sessionId);
+      resolve({ data: { message: 'Session terminated successfully' } });
+    }, 500);
+  });
+};
+
+// Mock toggle 2FA
+const mockToggle2FA = (enabled) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      mockSettings.security.twoFactorEnabled = enabled;
+      resolve({ data: { message: `2FA ${enabled ? 'enabled' : 'disabled'} successfully` } });
+    }, 500);
+  });
+};
+
 export const authAPI = {
   login: (credentials) => {
     // Try real API first, fall back to mock
@@ -194,6 +299,49 @@ export const authAPI = {
       .catch(() => {
         console.warn('Backend not available, using demo mode');
         return mockDeleteAccount();
+      });
+  },
+};
+
+export const settingsAPI = {
+  getSettings: () => {
+    return api
+      .get('/user/settings')
+      .catch(() => {
+        console.warn('Backend not available, using demo mode');
+        return mockGetSettings();
+      });
+  },
+  updateSettings: (settingsData) => {
+    return api
+      .put('/user/settings', settingsData)
+      .catch(() => {
+        console.warn('Backend not available, using demo mode');
+        return mockUpdateSettings(settingsData);
+      });
+  },
+  exportData: (format) => {
+    return api
+      .get(`/user/export?format=${format}`)
+      .catch(() => {
+        console.warn('Backend not available, using demo mode');
+        return mockExportData(format);
+      });
+  },
+  terminateSession: (sessionId) => {
+    return api
+      .delete(`/user/sessions/${sessionId}`)
+      .catch(() => {
+        console.warn('Backend not available, using demo mode');
+        return mockTerminateSession(sessionId);
+      });
+  },
+  toggle2FA: (enabled) => {
+    return api
+      .post('/user/2fa', { enabled })
+      .catch(() => {
+        console.warn('Backend not available, using demo mode');
+        return mockToggle2FA(enabled);
       });
   },
 };
