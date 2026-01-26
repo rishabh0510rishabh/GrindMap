@@ -1,4 +1,4 @@
-const puppeteer = require('puppeteer');
+import puppeteer from 'puppeteer';
 
 class PuppeteerManager {
   constructor() {
@@ -15,21 +15,21 @@ class PuppeteerManager {
 
     const browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     });
 
     this.browsers.add(browser);
-    
+
     // Auto-cleanup after 5 minutes
     setTimeout(() => this.closeBrowser(browser), 300000);
-    
+
     return browser;
   }
 
   async createPage(browser) {
     const page = await browser.newPage();
     page.setDefaultTimeout(this.pageTimeout);
-    
+
     this.pages.add(page);
     return page;
   }
@@ -50,22 +50,18 @@ class PuppeteerManager {
 
   async cleanup() {
     // Close all pages
-    await Promise.all(
-      Array.from(this.pages).map(page => this.closePage(page))
-    );
+    await Promise.all(Array.from(this.pages).map(page => this.closePage(page)));
 
     // Close all browsers
-    await Promise.all(
-      Array.from(this.browsers).map(browser => this.closeBrowser(browser))
-    );
+    await Promise.all(Array.from(this.browsers).map(browser => this.closeBrowser(browser)));
   }
 
   getStats() {
     return {
       activeBrowsers: this.browsers.size,
-      activePages: this.pages.size
+      activePages: this.pages.size,
     };
   }
 }
 
-module.exports = new PuppeteerManager();
+export default new PuppeteerManager();

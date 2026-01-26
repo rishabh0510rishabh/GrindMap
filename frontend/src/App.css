@@ -8,12 +8,8 @@ body {
   font-family:
     -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
-  background: linear-gradient(
-    135deg,
-    var(--theme-primary) 0%,
-    var(--theme-secondary) 100%
-  );
-  color: var(--theme-text);
+  background: linear-gradient(135deg, #020617 0%, #0f172a 40%, #1e293b 100%);
+  color: white;
   min-height: 100vh;
   transition:
     background 0.3s ease,
@@ -25,7 +21,8 @@ body {
   padding: 20px;
 
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
 }
 
 .container {
@@ -53,7 +50,7 @@ body {
   margin: 0;
   color: white;
   font-size: 3.5em;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .auth-trigger-btn {
@@ -228,9 +225,9 @@ body {
 }
 
 .input-group input:focus {
-  border-color: #667eea;
+  border-color: var(--theme-primary);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); /* Subtle focus ring */
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.25); /* Subtle focus ring */
 }
 
 .input-group input::placeholder {
@@ -245,7 +242,7 @@ body {
   font-size: 0.95em;
   font-weight: 600;
   background: #fff;
-  color: #4f46e5;
+  color: #f97316;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   cursor: pointer;
@@ -280,7 +277,7 @@ body {
 }
 
 .overall h2 {
-  color: #667eea;
+  color: var(--theme-primary);
   font-size: 2em;
   margin-bottom: 18px;
 }
@@ -311,7 +308,7 @@ body {
 .platform-card:hover {
   transform: translateY(-8px);
   box-shadow: 0 18px 55px rgba(0, 0, 0, 0.22);
-  border-color: #667eea;
+  border-color: var(--theme-primary);
 }
 
 .platform-card.expanded {
@@ -470,7 +467,7 @@ body {
   text-align: center;
   margin-bottom: 26px;
   font-size: 1.9em;
-  color: #667eea;
+  color: var(--theme-primary);
 }
 
 .activity-list {
@@ -505,6 +502,44 @@ body {
   background: #f8d7da;
   color: #721c24;
   border-left-color: #dc3545;
+}
+
+/* HackerRank Theme - Modern & Aesthetic */
+.platform-card.hackerrank {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95),
+    rgba(240, 253, 244, 0.8)
+  );
+  border: 1px solid rgba(46, 200, 102, 0.1);
+}
+
+.platform-card.hackerrank:hover {
+  border-color: #2ec866;
+  box-shadow:
+    0 18px 55px rgba(46, 200, 102, 0.2),
+    0 4px 12px rgba(46, 200, 102, 0.1);
+  transform: translateY(-8px) scale(1.02);
+}
+
+.platform-card.hackerrank .platform-progress text {
+  fill: #2ec866 !important;
+  font-weight: 700;
+  filter: drop-shadow(0 2px 4px rgba(46, 200, 102, 0.2));
+}
+
+.platform-card.hackerrank h3 {
+  color: #2ec866;
+  text-shadow: 0 2px 10px rgba(46, 200, 102, 0.15);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.platform-card.hackerrank .diff-item strong {
+  background: linear-gradient(135deg, #2ec866 0%, #10b981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
 }
 
 /* =========================
@@ -607,20 +642,20 @@ body {
 
 /* Analytics button */
 .nav-btn.analytics {
-  background: #22c55e;
+  background: var(--theme-primary);
 }
 
 .nav-btn.analytics:hover {
   transform: translateY(-2px);
-  background: #16a34a;
+  background: #ea580c;
 }
 
 /* Achievements button */
 .nav-btn.badges {
-  background: #a855f7;
+  background: var(--theme-secondary);
 }
 
 .nav-btn.badges:hover {
   transform: translateY(-2px);
-  background: #9333ea;
+  background: #f97316;
 }
