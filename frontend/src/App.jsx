@@ -4,6 +4,7 @@ import Login from "./components/Login";
 import Register from "./components/Register";
 import Dashboard from "./components/Dashboard";
 import Profile from "./components/Profile";
+import ActivityHistory from "./components/ActivityHistory";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -35,6 +36,15 @@ function App() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/activity"
+          element={
+            <ProtectedRoute>
+              <ActivityHistory />
             </ProtectedRoute>
           }
         />

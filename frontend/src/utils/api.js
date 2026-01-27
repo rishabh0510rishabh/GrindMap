@@ -150,6 +150,136 @@ const mockDeleteAccount = () => {
   });
 };
 
+// Mock activities data
+const mockActivities = [
+  {
+    id: '1',
+    date: new Date().toISOString(),
+    platform: 'LeetCode',
+    problemName: 'Two Sum',
+    problemLink: 'https://leetcode.com/problems/two-sum',
+    difficulty: 'Easy',
+    status: 'Solved',
+    timeSpent: 25,
+    language: 'Python',
+    tags: ['Array', 'Hash Table'],
+    attempts: 1,
+    score: 100,
+    notes: 'Used hash map for O(n) solution',
+  },
+  {
+    id: '2',
+    date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    platform: 'Codeforces',
+    problemName: 'Beautiful Matrix',
+    problemLink: 'https://codeforces.com/problemset/problem/263/A',
+    difficulty: 'Easy',
+    status: 'Solved',
+    timeSpent: 15,
+    language: 'C++',
+    tags: ['Implementation'],
+    attempts: 1,
+    score: 500,
+  },
+  {
+    id: '3',
+    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    platform: 'LeetCode',
+    problemName: 'Longest Substring Without Repeating Characters',
+    problemLink: 'https://leetcode.com/problems/longest-substring-without-repeating-characters',
+    difficulty: 'Medium',
+    status: 'Solved',
+    timeSpent: 45,
+    language: 'JavaScript',
+    tags: ['Hash Table', 'String', 'Sliding Window'],
+    attempts: 2,
+    score: 100,
+  },
+  {
+    id: '4',
+    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    platform: 'HackerRank',
+    problemName: 'Array Manipulation',
+    problemLink: 'https://www.hackerrank.com/challenges/crush',
+    difficulty: 'Hard',
+    status: 'Attempted',
+    timeSpent: 60,
+    language: 'Java',
+    tags: ['Array', 'Prefix Sum'],
+    attempts: 3,
+  },
+  {
+    id: '5',
+    date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    platform: 'CodeChef',
+    problemName: 'ATM Problem',
+    problemLink: 'https://www.codechef.com/problems/HS08TEST',
+    difficulty: 'Easy',
+    status: 'Solved',
+    timeSpent: 10,
+    language: 'Python',
+    tags: ['Ad-Hoc'],
+    attempts: 1,
+    score: 100,
+  },
+  {
+    id: '6',
+    date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    platform: 'LeetCode',
+    problemName: 'Median of Two Sorted Arrays',
+    problemLink: 'https://leetcode.com/problems/median-of-two-sorted-arrays',
+    difficulty: 'Hard',
+    status: 'Solved',
+    timeSpent: 90,
+    language: 'Python',
+    tags: ['Array', 'Binary Search', 'Divide and Conquer'],
+    attempts: 4,
+    score: 100,
+  },
+  {
+    id: '7',
+    date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    platform: 'LeetCode',
+    problemName: 'Valid Parentheses',
+    problemLink: 'https://leetcode.com/problems/valid-parentheses',
+    difficulty: 'Easy',
+    status: 'Solved',
+    timeSpent: 20,
+    language: 'JavaScript',
+    tags: ['String', 'Stack'],
+    attempts: 1,
+    score: 100,
+  },
+  {
+    id: '8',
+    date: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+    platform: 'Codeforces',
+    problemName: 'Watermelon',
+    problemLink: 'https://codeforces.com/problemset/problem/4/A',
+    difficulty: 'Easy',
+    status: 'Solved',
+    timeSpent: 5,
+    language: 'C++',
+    tags: ['Math', 'Brute Force'],
+    attempts: 1,
+    score: 500,
+  },
+];
+
+// Mock get activities
+const mockGetActivities = () => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({ 
+        data: { 
+          activities: mockActivities,
+          total: mockActivities.length,
+        } 
+      });
+    }, 500);
+  });
+};
+
 export const authAPI = {
   login: (credentials) => {
     // Try real API first, fall back to mock
@@ -194,6 +324,17 @@ export const authAPI = {
       .catch(() => {
         console.warn('Backend not available, using demo mode');
         return mockDeleteAccount();
+      });
+  },
+};
+
+export const activityAPI = {
+  getActivities: () => {
+    return api
+      .get('/activity/history')
+      .catch(() => {
+        console.warn('Backend not available, using demo mode');
+        return mockGetActivities();
       });
   },
 };
