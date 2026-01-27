@@ -1,18 +1,18 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect } from "react";
 
 const AuthContext = createContext();
 
 const initialState = {
   user: null,
-  token: localStorage.getItem('token'),
+  token: localStorage.getItem("token"),
   isAuthenticated: false,
   loading: true,
 };
 
 const authReducer = (state, action) => {
   switch (action.type) {
-    case 'LOGIN_SUCCESS':
-      localStorage.setItem('token', action.payload.token);
+    case "LOGIN_SUCCESS":
+      localStorage.setItem("token", action.payload.token);
       return {
         ...state,
         user: action.payload.user,
@@ -20,8 +20,8 @@ const authReducer = (state, action) => {
         isAuthenticated: true,
         loading: false,
       };
-    case 'LOGOUT':
-      localStorage.removeItem('token');
+    case "LOGOUT":
+      localStorage.removeItem("token");
       return {
         ...state,
         user: null,
@@ -29,13 +29,13 @@ const authReducer = (state, action) => {
         isAuthenticated: false,
         loading: false,
       };
-    case 'SET_LOADING':
+    case "SET_LOADING":
       return {
         ...state,
         loading: action.payload,
       };
-    case 'AUTH_ERROR':
-      localStorage.removeItem('token');
+    case "AUTH_ERROR":
+      localStorage.removeItem("token");
       return {
         ...state,
         user: null,
@@ -51,31 +51,31 @@ const authReducer = (state, action) => {
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5002/api';
+  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (token) {
         try {
           const response = await fetch(`${API_BASE}/auth/profile`, {
-            headers: { 'Authorization': `Bearer ${token}` },
+            headers: { Authorization: `Bearer ${token}` },
           });
-          
+
           if (response.ok) {
             const data = await response.json();
             dispatch({
-              type: 'LOGIN_SUCCESS',
+              type: "LOGIN_SUCCESS",
               payload: { user: data.data, token },
             });
           } else {
-            dispatch({ type: 'AUTH_ERROR' });
+            dispatch({ type: "AUTH_ERROR" });
           }
         } catch (error) {
-          dispatch({ type: 'AUTH_ERROR' });
+          dispatch({ type: "AUTH_ERROR" });
         }
       } else {
-        dispatch({ type: 'SET_LOADING', payload: false });
+        dispatch({ type: "SET_LOADING", payload: false });
       }
     };
 
@@ -85,8 +85,8 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
@@ -94,7 +94,7 @@ export const AuthProvider = ({ children }) => {
 
       if (response.ok) {
         dispatch({
-          type: 'LOGIN_SUCCESS',
+          type: "LOGIN_SUCCESS",
           payload: { user: data.data, token: data.data.token },
         });
         return { success: true };
@@ -102,15 +102,15 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: data.message };
       }
     } catch (error) {
-      return { success: false, error: 'Network error' };
+      return { success: false, error: "Network error" };
     }
   };
 
   const register = async (name, email, password) => {
     try {
       const response = await fetch(`${API_BASE}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
       });
 
@@ -118,7 +118,7 @@ export const AuthProvider = ({ children }) => {
 
       if (response.ok) {
         dispatch({
-          type: 'LOGIN_SUCCESS',
+          type: "LOGIN_SUCCESS",
           payload: { user: data.data, token: data.data.token },
         });
         return { success: true };
@@ -126,21 +126,21 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: data.message };
       }
     } catch (error) {
-      return { success: false, error: 'Network error' };
+      return { success: false, error: "Network error" };
     }
   };
 
   const logout = async () => {
     try {
       await fetch(`${API_BASE}/auth/logout`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${state.token}` },
+        method: "POST",
+        headers: { Authorization: `Bearer ${state.token}` },
       });
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     }
-    
-    dispatch({ type: 'LOGOUT' });
+
+    dispatch({ type: "LOGOUT" });
   };
 
   return (
@@ -153,7 +153,7 @@ export const AuthProvider = ({ children }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

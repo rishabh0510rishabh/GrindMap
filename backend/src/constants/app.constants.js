@@ -44,6 +44,8 @@ export const PLATFORMS = {
   GITHUB: 'github',
   ATCODER: 'atcoder',
   SKILLRACK: 'skillrack',
+  HACKEREARTH: 'hackerearth',
+  HACKERRANK: 'hackerrank',
 };
 
 // Response Messages
