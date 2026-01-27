@@ -76,6 +76,7 @@ const Login = () => {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user || { id, email: formData.email }));
       localStorage.setItem('userId', id);
+      localStorage.setItem('userEmail', formData.email);
       
       setSuccessMessage('Login successful! Redirecting to dashboard...');
       

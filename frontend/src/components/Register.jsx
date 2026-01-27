@@ -10,6 +10,7 @@ const Register = () => {
     password: '',
     confirmPassword: '',
   });
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -106,8 +107,7 @@ const Register = () => {
       // Store authentication data
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user || { id, name: formData.name, email: formData.email }));
-      localStorage.setItem('userId', id);
-
+      localStorage.setItem('userId', id);      localStorage.setItem('userEmail', formData.email);
       setSuccessMessage('Account created successfully! Redirecting to dashboard...');
 
       // Redirect to dashboard after a short delay
@@ -300,6 +300,28 @@ const Register = () => {
             {formData.password && formData.confirmPassword && !errors.confirmPassword && (
               <span className="success-message field-success">Passwords match ✓</span>
             )}
+          </div>
+
+          {/* Terms of Service Checkbox */}
+          <div className="form-group terms-group">
+            <label className="terms-checkbox">
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                disabled={loading}
+              />
+              <span>
+                I agree to the{' '}
+                <a href="#terms" className="terms-link" target="_blank" rel="noopener noreferrer">
+                  Terms of Service
+                </a>
+                {' '}and{' '}
+                <a href="#privacy" className="terms-link" target="_blank" rel="noopener noreferrer">
+                  Privacy Policy
+                </a>
+              </span>
+            </label>
           </div>
 
           {/* Submit Button */}

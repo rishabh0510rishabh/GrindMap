@@ -90,6 +90,66 @@ const mockRegister = (userData) => {
   });
 };
 
+// Mock update profile function
+const mockUpdateProfile = (userData) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const user = mockUsers.find(u => u.email === localStorage.getItem('userEmail'));
+      if (user) {
+        user.name = userData.name;
+        user.email = userData.email;
+        user.username = userData.username;
+        user.bio = userData.bio;
+      }
+      resolve({
+        data: {
+          id: user?.id || '1',
+          name: userData.name,
+          email: userData.email,
+          username: userData.username,
+          bio: userData.bio,
+          token: localStorage.getItem('token'),
+        },
+      });
+    }, 500);
+  });
+};
+
+// Mock change password function
+const mockChangePassword = (passwordData) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const user = mockUsers.find(u => u.email === localStorage.getItem('userEmail'));
+      if (!user || user.password !== passwordData.currentPassword) {
+        reject({
+          response: {
+            data: {
+              message: 'Current password is incorrect',
+            },
+          },
+        });
+        return;
+      }
+      user.password = passwordData.newPassword;
+      resolve({ data: { message: 'Password changed successfully' } });
+    }, 500);
+  });
+};
+
+// Mock delete account function
+const mockDeleteAccount = () => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const userEmail = localStorage.getItem('userEmail');
+      const index = mockUsers.findIndex(u => u.email === userEmail);
+      if (index > -1) {
+        mockUsers.splice(index, 1);
+      }
+      resolve({ data: { message: 'Account deleted successfully' } });
+    }, 500);
+  });
+};
+
 export const authAPI = {
   login: (credentials) => {
     // Try real API first, fall back to mock
@@ -107,6 +167,33 @@ export const authAPI = {
       .catch(() => {
         console.warn('Backend not available, using demo mode');
         return mockRegister(userData);
+      });
+  },
+  updateProfile: (userData) => {
+    // Try real API first, fall back to mock
+    return api
+      .put('/user/profile', userData)
+      .catch(() => {
+        console.warn('Backend not available, using demo mode');
+        return mockUpdateProfile(userData);
+      });
+  },
+  changePassword: (passwordData) => {
+    // Try real API first, fall back to mock
+    return api
+      .post('/user/change-password', passwordData)
+      .catch(() => {
+        console.warn('Backend not available, using demo mode');
+        return mockChangePassword(passwordData);
+      });
+  },
+  deleteAccount: () => {
+    // Try real API first, fall back to mock
+    return api
+      .delete('/user/account')
+      .catch(() => {
+        console.warn('Backend not available, using demo mode');
+        return mockDeleteAccount();
       });
   },
 };
