@@ -1,5 +1,6 @@
 import { createClient } from 'redis';
 import Logger from './logger.js';
+import { asyncWrapper } from './asyncWrapper.js';
 
 class MetricsCollector {
   constructor() {
