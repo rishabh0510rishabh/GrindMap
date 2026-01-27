@@ -1,48 +1,69 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import { createServer } from 'http';
+import DatabasePoolMonitor from './utils/databasePoolMonitor.js';
+import dbManager from './utils/databaseManager.js';
 import { corsOptions } from './config/cors.js';
-import { scrapeLeetCode } from './services/scraping/leetcode.scraper.js';
+import passport from 'passport';
+import configurePassport from './config/passport.js';
 import { errorHandler, notFound } from './middlewares/error.middleware.js';
 import { securityHeaders } from './middlewares/security.middleware.js';
+import { securityHeaders as helmetHeaders, additionalSecurityHeaders } from './middlewares/security.headers.middleware.js';
+import { sanitizeInput, sanitizeMongoQuery, preventParameterPollution } from './middlewares/sanitization.middleware.js';
+import { enhancedSecurityHeaders } from './middlewares/enhancedSecurity.middleware.js';
 import { requestLogger, securityMonitor } from './middlewares/logging.middleware.js';
-import { auditLogger, securityAudit } from './middlewares/audit.middleware.js';
-import { injectionProtection } from './middlewares/injection.middleware.js';
-import { xssProtection } from './middlewares/xss.middleware.js';
-import { monitoringMiddleware } from './middlewares/monitoring.middleware.js';
-import { memoryMiddleware } from './middlewares/memory.middleware.js';
-import { cpuProtection, heavyOperationProtection } from './middlewares/cpuProtection.middleware.js';
-import { responseSizeLimit, compressionBombProtection, healthSizeLimit, auditSizeLimit, securitySizeLimit, scrapingSizeLimit } from './middlewares/responseLimit.middleware.js';
-import { validateContentType, healthBodyLimit, auditBodyLimit, securityBodyLimit, scrapingBodyLimit, validateJSONStructure } from './middlewares/bodyLimit.middleware.js';
-import { maliciousPayloadDetection, requestSizeTracker, parseTimeLimit } from './middlewares/requestParsing.middleware.js';
-import { timeoutMiddleware, scrapingTimeout, healthTimeout, auditTimeout, securityTimeout } from './middlewares/timeout.middleware.js';
-import { adaptiveRateLimit, strictRateLimit, burstProtection, ddosProtection } from './middlewares/ddos.middleware.js';
-import { ipFilter } from './utils/ipManager.js';
-import { sanitizeInput, validateUsername } from './middlewares/validation.middleware.js';
-import { generalLimiter, scrapingLimiter } from './middlewares/rateLimiter.middleware.js';
-import { asyncHandler } from './utils/asyncHandler.js';
-import { AppError } from './utils/appError.js';
-import { fetchCodeforcesStats } from './services/scraping/codeforces.scraper.js';
-import { fetchCodeChefStats } from './services/scraping/codechef.scraper.js';
-import { normalizeCodeforces } from './services/normalization/codeforces.normalizer.js';
-import { normalizeCodeChef } from './services/normalization/codechef.normalizer.js';
-import { backpressureManager } from './utils/backpressure.util.js';
-import { withTrace } from './utils/serviceTracer.util.js';
-import auditRoutes from './routes/audit.routes.js';
+import { sanitizeInput as validationSanitize } from './middlewares/validation.middleware.js';
+import { advancedRateLimit } from './middlewares/antiBypassRateLimit.middleware.js';
+import { correlationId } from './middlewares/correlationId.middleware.js';
+import { performanceMetrics } from './middlewares/performance.middleware.js';
+import {
+  distributedRateLimit,
+  botDetection,
+  geoSecurityCheck,
+  securityAudit,
+  abuseDetection
+} from './middlewares/advancedSecurity.middleware.js';
+import { autoRefresh } from './middlewares/jwtManager.middleware.js';
+import { globalErrorBoundary } from './middlewares/errorBoundary.middleware.js';
+import DistributedSessionManager from './utils/distributedSessionManager.js';
+import WebSocketManager from './utils/websocketManager.js';
+import BatchProcessingService from './services/batchProcessing.service.js';
+import CacheWarmingService from './utils/cacheWarmingService.js';
+import RobustJobQueue from './utils/robustJobQueue.js';
+import CronScheduler from './services/cronScheduler.service.js';
+import ReliableJobHandlers from './services/reliableJobHandlers.service.js';
+import HealthMonitor from './utils/healthMonitor.js';
+import AlertManager from './utils/alertManager.js';
+import { performanceMonitoring, errorTracking, memoryMonitoring } from './middlewares/monitoring.middleware.js';
+import RequestManager from './utils/requestManager.js';
+import PuppeteerManager from './utils/puppeteerManager.js';
+
+// Import routes
+import scrapeRoutes from './routes/scrape.routes.js';
+import authRoutes from './routes/auth.routes.js';
+import cacheRoutes from './routes/cache.routes.js';
+import advancedCacheRoutes from './routes/advancedCache.routes.js';
+import notificationRoutes from './routes/notification.routes.js';
+import analyticsRoutes from './routes/analytics.routes.js';
 import securityRoutes from './routes/security.routes.js';
-import healthRoutes from './routes/health.routes.js';
-import { secureLogger, secureErrorHandler } from './middlewares/secureLogging.middleware.js';
-import { validateEnvironment } from './config/environment.js';
-import { connectionManager } from './utils/connectionManager.js';
-import { memoryMonitor } from './services/memoryMonitor.service.js';
-import { cpuMonitor } from './services/cpuMonitor.service.js';
-import { bandwidthMonitor } from './services/bandwidthMonitor.service.js';
-import { processLimiter } from './utils/processLimiter.js';
-import { cacheManager } from './utils/cacheManager.js';
-import { gracefulShutdown } from './utils/shutdown.util.js';
-import { authBypassProtection, validateToken } from './middlewares/auth.middleware.js';
-import { fileUploadSecurity, validateFileExtensions, detectEncodedFiles } from './middlewares/fileUpload.middleware.js';
-import { apiVersionSecurity, deprecationWarning, validateApiEndpoint, versionRateLimit } from './middlewares/apiVersion.middleware.js';
-import { csrfProtection, csrfTokenEndpoint } from './middlewares/csrf.middleware.js';
+import databaseRoutes from './routes/database.routes.js';
+import websocketRoutes from './routes/websocket.routes.js';
+import quotaRoutes from './routes/quota.routes.js';
+import jobsRoutes from './routes/jobs.routes.js';
+import monitoringRoutes from './routes/monitoring.routes.js';
+import grindRoomRoutes from './routes/grindRoom.routes.js';
+import tournamentRoutes from './routes/tournament.routes.js';
+import duelRoutes from './routes/duel.routes.js';
+import mentorshipRoutes from './routes/mentorship.routes.js';
+
+import monitoringRoutes from './routes/monitoring.routes.js';
+// Import secure logger to prevent JWT exposure
+
+import './utils/secureLogger.js';
+// Import constants
+import { HTTP_STATUS, ENVIRONMENTS } from './constants/app.constants.js';
+import Logger from './utils/logger.js';
 
 // Set default NODE_ENV if not provided
 if (!process.env.NODE_ENV) {
@@ -132,8 +153,31 @@ app.use(versionRateLimit);
 app.use(secureLogger);
 app.use(requestLogger);
 app.use(securityMonitor);
-app.use(securityHeaders);
-app.use(generalLimiter);
+
+// Monitoring middleware
+app.use(performanceMonitoring);
+app.use(memoryMonitoring);
+
+// Advanced security middleware
+if (!IS_TEST) {
+  app.use(distributedRateLimit);
+  app.use(botDetection);
+  app.use(geoSecurityCheck);
+  app.use(securityAudit);
+  app.use(abuseDetection);
+}
+app.use(autoRefresh);
+
+// Request timeout handling
+app.use(apiTimeout);
+
+// API response compression
+app.use(apiCompression);
+
+// Anti-bypass rate limiting
+app.use(advancedRateLimit);
+
+// CORS configuration
 app.use(cors(corsOptions));
 app.use(parseTimeLimit()); // 1 second JSON parse limit
 app.use(express.json({ limit: '10mb' }));
@@ -200,47 +244,65 @@ app.get('/api/leetcode/:username',
         improvement: "37% faster than before"
       }
     });
-  })
-);
+  } catch (error) {
+    Logger.error('Health check failed', { error: error.message });
+    res.status(503).json({
+      success: false,
+      message: 'Server unhealthy',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
 
-app.get('/api/codeforces/:username',
-  scrapingBodyLimit,
-  scrapingSizeLimit,
-  scrapingTimeout,
-  heavyOperationProtection,
-  csrfProtection,
-  validateUsername,
-  asyncHandler(async (req, res) => {
-    const { username } = req.params;
-    const raw = await backpressureManager.process(() =>
-      withTrace(req.traceId, "codeforces.scrape", () =>
-        fetchCodeforcesStats(username)
-      )
-    );
-    const normalized = normalizeCodeforces({ ...raw, username });
-    res.json({ success: true, data: normalized, traceId: req.traceId });
-  })
-);
+// API routes
+app.use('/api/scrape', scrapeRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/cache', cacheRoutes);
+app.use('/api/advanced-cache', advancedCacheRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/security', securityRoutes);
+app.use('/api/database', databaseRoutes);
+app.use('/api/websocket', websocketRoutes);
+app.use('/api/quota', quotaRoutes);
+app.use('/api/upload', fileUploadRoutes);
+app.use('/api/job-monitoring', jobMonitoringRoutes);
+app.use('/api/monitoring', monitoringRoutes);
+app.use('/api/rooms', grindRoomRoutes);
+app.use('/api/tournaments', tournamentRoutes);
+app.use('/api/duels', duelRoutes);
+app.use('/api/mentorship', mentorshipRoutes);
 
-app.get('/api/codechef/:username',
-  scrapingBodyLimit,
-  scrapingSizeLimit,
-  scrapingTimeout,
-  heavyOperationProtection,
-  csrfProtection,
-  validateUsername,
-  asyncHandler(async (req, res) => {
-    const { username } = req.params;
-    const raw = await backpressureManager.process(() =>
-      withTrace(req.traceId, "codechef.scrape", () =>
-        fetchCodeChefStats(username)
-      )
-    );
-    const normalized = normalizeCodeChef({ ...raw, username });
-    res.json({ success: true, data: normalized, traceId: req.traceId });
-  })
-);
+// API documentation endpoint
+app.get('/api', (req, res) => {
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: 'GrindMap API v1.0',
+    documentation: '/api/docs',
+    endpoints: {
+      scraping: '/api/scrape',
+      authentication: '/api/auth',
+      cache: '/api/cache',
+      advancedCache: '/api/advanced-cache',
+      notifications: '/api/notifications',
+      analytics: '/api/analytics',
+      websocket: '/ws',
+      websocketAPI: '/api/websocket',
+      quota: '/api/quota',
+      jobs: '/api/jobs',
+      monitoring: '/api/monitoring',
+      tournaments: '/api/tournaments',
+      duels: '/api/duels',
+      mentorship: '/api/mentorship',
+      health: '/health',
+      database: '/api/database',
+    },
+    correlationId: req.correlationId,
+  });
+});
 
+// 404 handler for undefined routes
 app.use(notFound);
 app.use(secureErrorHandler);
 app.use(errorHandler);

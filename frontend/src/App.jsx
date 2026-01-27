@@ -45,10 +45,10 @@ function App() {
         />
 
         <Route
-          path="/activity"
+          path="/settings"
           element={
             <ProtectedRoute>
-              <ActivityHistory />
+              <Settings />
             </ProtectedRoute>
           }
         />
