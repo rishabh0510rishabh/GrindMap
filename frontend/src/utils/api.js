@@ -280,6 +280,251 @@ const mockGetActivities = () => {
   });
 };
 
+const toDateKey = (value) => {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return parsed.toISOString().split('T')[0];
+};
+
+const isWithinRange = (dateString, startDate, endDate) => {
+  if (!dateString) return false;
+  const current = new Date(dateString);
+  if (Number.isNaN(current.getTime())) return false;
+  if (startDate && current < startDate) return false;
+  if (endDate && current > endDate) return false;
+  return true;
+};
+
+const getWeekNumber = (date) => {
+  const tempDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = tempDate.getUTCDay() || 7;
+  tempDate.setUTCDate(tempDate.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(tempDate.getUTCFullYear(), 0, 1));
+  return Math.ceil(((tempDate - yearStart) / 86400000 + 1) / 7);
+};
+
+const aggregateTimeSeries = (activities, granularity = 'day') => {
+  const bucket = {};
+
+  activities.forEach((activity) => {
+    const date = new Date(activity.date);
+    if (Number.isNaN(date.getTime())) return;
+
+    let key = toDateKey(activity.date);
+    if (granularity === 'week') {
+      key = `${date.getFullYear()}-W${String(getWeekNumber(date)).padStart(2, '0')}`;
+    }
+    if (granularity === 'month') {
+      key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    }
+    if (granularity === 'year') {
+      key = `${date.getFullYear()}`;
+    }
+
+    if (!bucket[key]) {
+      bucket[key] = { label: key, solved: 0, attempts: 0, timeSpent: 0, solvedCount: 0 };
+    }
+
+    if (activity.status === 'Solved') {
+      bucket[key].solved += 1;
+      bucket[key].solvedCount += 1;
+    }
+    bucket[key].attempts += activity.attempts || 1;
+    bucket[key].timeSpent += activity.timeSpent || 0;
+  });
+
+  return Object.values(bucket)
+    .sort((a, b) => (a.label > b.label ? 1 : -1))
+    .map((entry) => ({
+      ...entry,
+      avgTime: entry.solvedCount ? Math.round(entry.timeSpent / entry.solvedCount) : 0,
+      successRate: entry.attempts ? Math.round((entry.solved / entry.attempts) * 100) : 0,
+    }));
+};
+
+const buildDifficultyDistribution = (activities) => {
+  const base = {
+    Easy: { difficulty: 'Easy', solved: 0, attempts: 0 },
+    Medium: { difficulty: 'Medium', solved: 0, attempts: 0 },
+    Hard: { difficulty: 'Hard', solved: 0, attempts: 0 },
+  };
+
+  activities.forEach((activity) => {
+    const target = base[activity.difficulty] || null;
+    if (!target) return;
+    target.attempts += activity.attempts || 1;
+    if (activity.status === 'Solved') {
+      target.solved += 1;
+    }
+  });
+
+  return Object.values(base).map((item) => ({
+    ...item,
+    successRate: item.attempts ? Math.round((item.solved / item.attempts) * 100) : 0,
+  }));
+};
+
+const buildPlatformComparison = (activities) => {
+  const bucket = {};
+
+  activities.forEach((activity) => {
+    const key = activity.platform || 'Unknown';
+    if (!bucket[key]) {
+      bucket[key] = { platform: key, solved: 0, attempts: 0, timeSpent: 0, solvedCount: 0 };
+    }
+
+    if (activity.status === 'Solved') {
+      bucket[key].solved += 1;
+      bucket[key].solvedCount += 1;
+    }
+    bucket[key].attempts += activity.attempts || 1;
+    bucket[key].timeSpent += activity.timeSpent || 0;
+  });
+
+  return Object.values(bucket).map((entry) => ({
+    ...entry,
+    successRate: entry.attempts ? Math.round((entry.solved / entry.attempts) * 100) : 0,
+    avgTime: entry.solvedCount ? Math.round(entry.timeSpent / entry.solvedCount) : 0,
+  }));
+};
+
+const buildLanguageUsage = (activities) => {
+  const bucket = {};
+
+  activities.forEach((activity) => {
+    const key = activity.language || 'Unknown';
+    bucket[key] = (bucket[key] || 0) + 1;
+  });
+
+  return Object.entries(bucket)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+};
+
+const buildProductivityHeatmap = (activities) => {
+  const matrix = Array.from({ length: 7 }, (_, day) => ({ day, hours: Array(24).fill(0) }));
+
+  activities.forEach((activity) => {
+    const date = new Date(activity.date);
+    if (Number.isNaN(date.getTime())) return;
+    const day = date.getDay();
+    const hour = date.getHours();
+    matrix[day].hours[hour] += 1;
+  });
+
+  const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  return matrix.map((row) => ({
+    day: dayLabels[row.day],
+    values: row.hours.map((count, hour) => ({ hour, count })),
+  }));
+};
+
+const buildSuccessRateByDifficultyOverTime = (activities) => {
+  const bucket = {};
+
+  activities.forEach((activity) => {
+    const date = new Date(activity.date);
+    if (Number.isNaN(date.getTime())) return;
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    if (!bucket[key]) {
+      bucket[key] = {
+        period: key,
+        Easy: { solved: 0, attempts: 0 },
+        Medium: { solved: 0, attempts: 0 },
+        Hard: { solved: 0, attempts: 0 },
+      };
+    }
+
+    const target = bucket[key][activity.difficulty] || null;
+    if (!target) return;
+    target.attempts += activity.attempts || 1;
+    if (activity.status === 'Solved') {
+      target.solved += 1;
+    }
+  });
+
+  return Object.values(bucket)
+    .sort((a, b) => (a.period > b.period ? 1 : -1))
+    .map((entry) => ({
+      period: entry.period,
+      easy: entry.Easy.attempts ? Math.round((entry.Easy.solved / entry.Easy.attempts) * 100) : 0,
+      medium: entry.Medium.attempts ? Math.round((entry.Medium.solved / entry.Medium.attempts) * 100) : 0,
+      hard: entry.Hard.attempts ? Math.round((entry.Hard.solved / entry.Hard.attempts) * 100) : 0,
+    }));
+};
+
+const buildAnalyticsMock = (range = {}) => {
+  const startDate = range.startDate ? new Date(range.startDate) : null;
+  const endDate = range.endDate ? new Date(range.endDate) : null;
+
+  const filtered = mockActivities.filter((activity) =>
+    isWithinRange(activity.date, startDate, endDate)
+  );
+
+  const solved = filtered.filter((item) => item.status === 'Solved');
+  const attempts = filtered.reduce((sum, item) => sum + (item.attempts || 1), 0);
+  const totalTime = solved.reduce((sum, item) => sum + (item.timeSpent || 0), 0);
+  const fastestSolve = solved.reduce(
+    (min, item) => (item.timeSpent && item.timeSpent < min ? item.timeSpent : min),
+    solved[0]?.timeSpent || 0
+  );
+
+  const dailyTrends = aggregateTimeSeries(filtered, 'day');
+  const weeklyTrends = aggregateTimeSeries(filtered, 'week');
+  const monthlyTrends = aggregateTimeSeries(filtered, 'month');
+  const yearlyTrends = aggregateTimeSeries(filtered, 'year');
+
+  const heatmap = buildProductivityHeatmap(filtered);
+  const difficulty = buildDifficultyDistribution(filtered);
+  const platforms = buildPlatformComparison(filtered);
+  const languages = buildLanguageUsage(filtered);
+  const difficultyRates = buildSuccessRateByDifficultyOverTime(filtered);
+
+  const bestHourBucket = {};
+  filtered.forEach((activity) => {
+    const date = new Date(activity.date);
+    if (Number.isNaN(date.getTime())) return;
+    const hour = date.getHours();
+    bestHourBucket[hour] = (bestHourBucket[hour] || 0) + 1;
+  });
+
+  const peakHour = Object.entries(bestHourBucket).sort((a, b) => b[1] - a[1])[0];
+
+  return {
+    summary: {
+      totalSolved: solved.length,
+      totalAttempts: attempts,
+      avgTime: solved.length ? Math.round(totalTime / solved.length) : 0,
+      successRate: attempts ? Math.round((solved.length / attempts) * 100) : 0,
+      fastestSolve: fastestSolve || 0,
+      languagesUsed: languages.length,
+      platformCount: platforms.length,
+      peakHour: peakHour ? `${peakHour[0]}:00` : 'N/A',
+    },
+    trends: {
+      daily: dailyTrends,
+      weekly: weeklyTrends,
+      monthly: monthlyTrends,
+      yearly: yearlyTrends,
+    },
+    difficultyDistribution: difficulty,
+    platformComparison: platforms,
+    languageUsage: languages,
+    productivityHeatmap: heatmap,
+    successRateByDifficultyOverTime: difficultyRates,
+    progressComparison: {
+      monthly: monthlyTrends,
+      yearly: yearlyTrends,
+    },
+    speedMetrics: {
+      averageSolveTimeByWeek: weeklyTrends.map((item) => ({ week: item.label, minutes: item.avgTime })),
+      averageSolveTimeByMonth: monthlyTrends.map((item) => ({ month: item.label, minutes: item.avgTime })),
+    },
+  };
+};
+
 export const authAPI = {
   login: (credentials) => {
     // Try real API first, fall back to mock
@@ -336,6 +581,29 @@ export const activityAPI = {
         console.warn('Backend not available, using demo mode');
         return mockGetActivities();
       });
+  },
+};
+
+export const analyticsAPI = {
+  getOverview: async (params = {}) => {
+    try {
+      const response = await api.get('/analytics/overview', { params });
+      return response;
+    } catch (error) {
+      console.log('Using mock analytics overview');
+      return { data: buildAnalyticsMock(params) };
+    }
+  },
+  exportReport: async (payload = {}) => {
+    try {
+      const response = await api.post('/analytics/export', payload, {
+        responseType: 'blob',
+      });
+      return response;
+    } catch (error) {
+      console.log('Export report is mocked');
+      return { data: buildAnalyticsMock(payload), isMock: true };
+    }
   },
 };
 
