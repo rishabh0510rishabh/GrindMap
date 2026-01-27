@@ -150,132 +150,107 @@ const mockDeleteAccount = () => {
   });
 };
 
-// Mock activities data
-const mockActivities = [
-  {
-    id: '1',
-    date: new Date().toISOString(),
-    platform: 'LeetCode',
-    problemName: 'Two Sum',
-    problemLink: 'https://leetcode.com/problems/two-sum',
-    difficulty: 'Easy',
-    status: 'Solved',
-    timeSpent: 25,
-    language: 'Python',
-    tags: ['Array', 'Hash Table'],
-    attempts: 1,
-    score: 100,
-    notes: 'Used hash map for O(n) solution',
+// Mock settings storage
+let mockSettings = {
+  notifications: {
+    emailNotifications: true,
+    pushNotifications: false,
+    dailyReminders: true,
+    weeklyDigest: true,
+    streakReminders: true,
+    reminderFrequency: 'daily',
+    reminderTime: '09:00',
   },
-  {
-    id: '2',
-    date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    platform: 'Codeforces',
-    problemName: 'Beautiful Matrix',
-    problemLink: 'https://codeforces.com/problemset/problem/263/A',
-    difficulty: 'Easy',
-    status: 'Solved',
-    timeSpent: 15,
-    language: 'C++',
-    tags: ['Implementation'],
-    attempts: 1,
-    score: 500,
+  privacy: {
+    profileVisibility: 'public',
+    showEmail: false,
+    showStats: true,
+    showBadges: true,
+    showActivity: true,
+    allowDataSharing: false,
+    allowAnalytics: true,
   },
-  {
-    id: '3',
-    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    platform: 'LeetCode',
-    problemName: 'Longest Substring Without Repeating Characters',
-    problemLink: 'https://leetcode.com/problems/longest-substring-without-repeating-characters',
-    difficulty: 'Medium',
-    status: 'Solved',
-    timeSpent: 45,
-    language: 'JavaScript',
-    tags: ['Hash Table', 'String', 'Sliding Window'],
-    attempts: 2,
-    score: 100,
+  display: {
+    theme: 'light',
+    dashboardLayout: 'grid',
+    showAnimations: true,
+    compactMode: false,
+    fontSize: 'medium',
+    language: 'en',
   },
-  {
-    id: '4',
-    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    platform: 'HackerRank',
-    problemName: 'Array Manipulation',
-    problemLink: 'https://www.hackerrank.com/challenges/crush',
-    difficulty: 'Hard',
-    status: 'Attempted',
-    timeSpent: 60,
-    language: 'Java',
-    tags: ['Array', 'Prefix Sum'],
-    attempts: 3,
+  platform: {
+    autoSync: true,
+    syncFrequency: 'hourly',
+    notifyOnSync: false,
+    connectedPlatforms: [],
   },
-  {
-    id: '5',
-    date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-    platform: 'CodeChef',
-    problemName: 'ATM Problem',
-    problemLink: 'https://www.codechef.com/problems/HS08TEST',
-    difficulty: 'Easy',
-    status: 'Solved',
-    timeSpent: 10,
-    language: 'Python',
-    tags: ['Ad-Hoc'],
-    attempts: 1,
-    score: 100,
+  security: {
+    twoFactorEnabled: false,
+    sessionTimeout: 30,
+    showActiveSessions: true,
+    loginAlerts: true,
   },
-  {
-    id: '6',
-    date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    platform: 'LeetCode',
-    problemName: 'Median of Two Sorted Arrays',
-    problemLink: 'https://leetcode.com/problems/median-of-two-sorted-arrays',
-    difficulty: 'Hard',
-    status: 'Solved',
-    timeSpent: 90,
-    language: 'Python',
-    tags: ['Array', 'Binary Search', 'Divide and Conquer'],
-    attempts: 4,
-    score: 100,
-  },
-  {
-    id: '7',
-    date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    platform: 'LeetCode',
-    problemName: 'Valid Parentheses',
-    problemLink: 'https://leetcode.com/problems/valid-parentheses',
-    difficulty: 'Easy',
-    status: 'Solved',
-    timeSpent: 20,
-    language: 'JavaScript',
-    tags: ['String', 'Stack'],
-    attempts: 1,
-    score: 100,
-  },
-  {
-    id: '8',
-    date: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
-    platform: 'Codeforces',
-    problemName: 'Watermelon',
-    problemLink: 'https://codeforces.com/problemset/problem/4/A',
-    difficulty: 'Easy',
-    status: 'Solved',
-    timeSpent: 5,
-    language: 'C++',
-    tags: ['Math', 'Brute Force'],
-    attempts: 1,
-    score: 500,
-  },
-];
+  activeSessions: [
+    {
+      id: '1',
+      device: 'Chrome on Windows',
+      location: 'New York, USA',
+      lastActive: '2 minutes ago',
+      current: true,
+    },
+  ],
+};
 
-// Mock get activities
-const mockGetActivities = () => {
+// Mock get settings
+const mockGetSettings = () => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve({ 
-        data: { 
-          activities: mockActivities,
-          total: mockActivities.length,
-        } 
-      });
+      resolve({ data: mockSettings });
+    }, 500);
+  });
+};
+
+// Mock update settings
+const mockUpdateSettings = (settingsData) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      mockSettings = { ...mockSettings, ...settingsData };
+      resolve({ data: { message: 'Settings updated successfully', settings: mockSettings } });
+    }, 500);
+  });
+};
+
+// Mock export data
+const mockExportData = (format) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const userData = {
+        user: JSON.parse(localStorage.getItem('user') || '{}'),
+        settings: mockSettings,
+        exportDate: new Date().toISOString(),
+        format: format,
+      };
+      resolve({ data: userData });
+    }, 500);
+  });
+};
+
+// Mock terminate session
+const mockTerminateSession = (sessionId) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      mockSettings.activeSessions = mockSettings.activeSessions.filter(s => s.id !== sessionId);
+      resolve({ data: { message: 'Session terminated successfully' } });
+    }, 500);
+  });
+};
+
+// Mock toggle 2FA
+const mockToggle2FA = (enabled) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      mockSettings.security.twoFactorEnabled = enabled;
+      resolve({ data: { message: `2FA ${enabled ? 'enabled' : 'disabled'} successfully` } });
     }, 500);
   });
 };
@@ -573,13 +548,45 @@ export const authAPI = {
   },
 };
 
-export const activityAPI = {
-  getActivities: () => {
+export const settingsAPI = {
+  getSettings: () => {
     return api
-      .get('/activity/history')
+      .get('/user/settings')
       .catch(() => {
         console.warn('Backend not available, using demo mode');
-        return mockGetActivities();
+        return mockGetSettings();
+      });
+  },
+  updateSettings: (settingsData) => {
+    return api
+      .put('/user/settings', settingsData)
+      .catch(() => {
+        console.warn('Backend not available, using demo mode');
+        return mockUpdateSettings(settingsData);
+      });
+  },
+  exportData: (format) => {
+    return api
+      .get(`/user/export?format=${format}`)
+      .catch(() => {
+        console.warn('Backend not available, using demo mode');
+        return mockExportData(format);
+      });
+  },
+  terminateSession: (sessionId) => {
+    return api
+      .delete(`/user/sessions/${sessionId}`)
+      .catch(() => {
+        console.warn('Backend not available, using demo mode');
+        return mockTerminateSession(sessionId);
+      });
+  },
+  toggle2FA: (enabled) => {
+    return api
+      .post('/user/2fa', { enabled })
+      .catch(() => {
+        console.warn('Backend not available, using demo mode');
+        return mockToggle2FA(enabled);
       });
   },
 };
