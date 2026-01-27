@@ -150,107 +150,132 @@ const mockDeleteAccount = () => {
   });
 };
 
-// Mock settings storage
-let mockSettings = {
-  notifications: {
-    emailNotifications: true,
-    pushNotifications: false,
-    dailyReminders: true,
-    weeklyDigest: true,
-    streakReminders: true,
-    reminderFrequency: 'daily',
-    reminderTime: '09:00',
+// Mock activities data
+const mockActivities = [
+  {
+    id: '1',
+    date: new Date().toISOString(),
+    platform: 'LeetCode',
+    problemName: 'Two Sum',
+    problemLink: 'https://leetcode.com/problems/two-sum',
+    difficulty: 'Easy',
+    status: 'Solved',
+    timeSpent: 25,
+    language: 'Python',
+    tags: ['Array', 'Hash Table'],
+    attempts: 1,
+    score: 100,
+    notes: 'Used hash map for O(n) solution',
   },
-  privacy: {
-    profileVisibility: 'public',
-    showEmail: false,
-    showStats: true,
-    showBadges: true,
-    showActivity: true,
-    allowDataSharing: false,
-    allowAnalytics: true,
+  {
+    id: '2',
+    date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    platform: 'Codeforces',
+    problemName: 'Beautiful Matrix',
+    problemLink: 'https://codeforces.com/problemset/problem/263/A',
+    difficulty: 'Easy',
+    status: 'Solved',
+    timeSpent: 15,
+    language: 'C++',
+    tags: ['Implementation'],
+    attempts: 1,
+    score: 500,
   },
-  display: {
-    theme: 'light',
-    dashboardLayout: 'grid',
-    showAnimations: true,
-    compactMode: false,
-    fontSize: 'medium',
-    language: 'en',
+  {
+    id: '3',
+    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    platform: 'LeetCode',
+    problemName: 'Longest Substring Without Repeating Characters',
+    problemLink: 'https://leetcode.com/problems/longest-substring-without-repeating-characters',
+    difficulty: 'Medium',
+    status: 'Solved',
+    timeSpent: 45,
+    language: 'JavaScript',
+    tags: ['Hash Table', 'String', 'Sliding Window'],
+    attempts: 2,
+    score: 100,
   },
-  platform: {
-    autoSync: true,
-    syncFrequency: 'hourly',
-    notifyOnSync: false,
-    connectedPlatforms: [],
+  {
+    id: '4',
+    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    platform: 'HackerRank',
+    problemName: 'Array Manipulation',
+    problemLink: 'https://www.hackerrank.com/challenges/crush',
+    difficulty: 'Hard',
+    status: 'Attempted',
+    timeSpent: 60,
+    language: 'Java',
+    tags: ['Array', 'Prefix Sum'],
+    attempts: 3,
   },
-  security: {
-    twoFactorEnabled: false,
-    sessionTimeout: 30,
-    showActiveSessions: true,
-    loginAlerts: true,
+  {
+    id: '5',
+    date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    platform: 'CodeChef',
+    problemName: 'ATM Problem',
+    problemLink: 'https://www.codechef.com/problems/HS08TEST',
+    difficulty: 'Easy',
+    status: 'Solved',
+    timeSpent: 10,
+    language: 'Python',
+    tags: ['Ad-Hoc'],
+    attempts: 1,
+    score: 100,
   },
-  activeSessions: [
-    {
-      id: '1',
-      device: 'Chrome on Windows',
-      location: 'New York, USA',
-      lastActive: '2 minutes ago',
-      current: true,
-    },
-  ],
-};
+  {
+    id: '6',
+    date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    platform: 'LeetCode',
+    problemName: 'Median of Two Sorted Arrays',
+    problemLink: 'https://leetcode.com/problems/median-of-two-sorted-arrays',
+    difficulty: 'Hard',
+    status: 'Solved',
+    timeSpent: 90,
+    language: 'Python',
+    tags: ['Array', 'Binary Search', 'Divide and Conquer'],
+    attempts: 4,
+    score: 100,
+  },
+  {
+    id: '7',
+    date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    platform: 'LeetCode',
+    problemName: 'Valid Parentheses',
+    problemLink: 'https://leetcode.com/problems/valid-parentheses',
+    difficulty: 'Easy',
+    status: 'Solved',
+    timeSpent: 20,
+    language: 'JavaScript',
+    tags: ['String', 'Stack'],
+    attempts: 1,
+    score: 100,
+  },
+  {
+    id: '8',
+    date: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+    platform: 'Codeforces',
+    problemName: 'Watermelon',
+    problemLink: 'https://codeforces.com/problemset/problem/4/A',
+    difficulty: 'Easy',
+    status: 'Solved',
+    timeSpent: 5,
+    language: 'C++',
+    tags: ['Math', 'Brute Force'],
+    attempts: 1,
+    score: 500,
+  },
+];
 
-// Mock get settings
-const mockGetSettings = () => {
+// Mock get activities
+const mockGetActivities = () => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve({ data: mockSettings });
-    }, 500);
-  });
-};
-
-// Mock update settings
-const mockUpdateSettings = (settingsData) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      mockSettings = { ...mockSettings, ...settingsData };
-      resolve({ data: { message: 'Settings updated successfully', settings: mockSettings } });
-    }, 500);
-  });
-};
-
-// Mock export data
-const mockExportData = (format) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const userData = {
-        user: JSON.parse(localStorage.getItem('user') || '{}'),
-        settings: mockSettings,
-        exportDate: new Date().toISOString(),
-        format: format,
-      };
-      resolve({ data: userData });
-    }, 500);
-  });
-};
-
-// Mock terminate session
-const mockTerminateSession = (sessionId) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      mockSettings.activeSessions = mockSettings.activeSessions.filter(s => s.id !== sessionId);
-      resolve({ data: { message: 'Session terminated successfully' } });
-    }, 500);
-  });
-};
-
-// Mock toggle 2FA
-const mockToggle2FA = (enabled) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      mockSettings.security.twoFactorEnabled = enabled;
-      resolve({ data: { message: `2FA ${enabled ? 'enabled' : 'disabled'} successfully` } });
+      resolve({ 
+        data: { 
+          activities: mockActivities,
+          total: mockActivities.length,
+        } 
+      });
     }, 500);
   });
 };
@@ -303,46 +328,298 @@ export const authAPI = {
   },
 };
 
-export const settingsAPI = {
-  getSettings: () => {
+export const activityAPI = {
+  getActivities: () => {
     return api
-      .get('/user/settings')
+      .get('/activity/history')
       .catch(() => {
         console.warn('Backend not available, using demo mode');
-        return mockGetSettings();
+        return mockGetActivities();
       });
   },
-  updateSettings: (settingsData) => {
-    return api
-      .put('/user/settings', settingsData)
-      .catch(() => {
-        console.warn('Backend not available, using demo mode');
-        return mockUpdateSettings(settingsData);
-      });
+};
+
+// Mock platform connections data
+const mockPlatformConnections = [
+  {
+    id: '1',
+    platformId: 'leetcode',
+    name: 'LeetCode',
+    username: 'demo_user',
+    connected: true,
+    status: 'connected',
+    lastSync: new Date(Date.now() - 30 * 60000).toISOString(), // 30 minutes ago
+    problemsSynced: 156,
+    lastSyncError: null,
+    syncing: false,
+    requiresApiKey: false,
+    requiresToken: false,
+    settings: {
+      syncProblems: true,
+      syncSubmissions: true,
+      syncContests: false,
+      autoSync: true,
+    },
   },
-  exportData: (format) => {
-    return api
-      .get(`/user/export?format=${format}`)
-      .catch(() => {
-        console.warn('Backend not available, using demo mode');
-        return mockExportData(format);
-      });
+  {
+    id: '2',
+    platformId: 'codeforces',
+    name: 'Codeforces',
+    username: 'demo_user',
+    connected: true,
+    status: 'connected',
+    lastSync: new Date(Date.now() - 2 * 3600000).toISOString(), // 2 hours ago
+    problemsSynced: 89,
+    lastSyncError: null,
+    syncing: false,
+    requiresApiKey: true,
+    requiresToken: false,
+    settings: {
+      syncProblems: true,
+      syncSubmissions: true,
+      syncContests: true,
+      autoSync: true,
+    },
   },
-  terminateSession: (sessionId) => {
-    return api
-      .delete(`/user/sessions/${sessionId}`)
-      .catch(() => {
-        console.warn('Backend not available, using demo mode');
-        return mockTerminateSession(sessionId);
-      });
+  {
+    id: '3',
+    platformId: 'github',
+    name: 'GitHub',
+    username: '',
+    connected: false,
+    status: 'disconnected',
+    lastSync: null,
+    problemsSynced: 0,
+    lastSyncError: null,
+    syncing: false,
+    requiresApiKey: false,
+    requiresToken: true,
+    settings: {
+      syncProblems: true,
+      syncSubmissions: false,
+      syncContests: false,
+      autoSync: false,
+    },
   },
-  toggle2FA: (enabled) => {
-    return api
-      .post('/user/2fa', { enabled })
-      .catch(() => {
-        console.warn('Backend not available, using demo mode');
-        return mockToggle2FA(enabled);
+];
+
+// Mock platform API functions
+const mockGetPlatforms = () => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        data: {
+          platforms: mockPlatformConnections,
+          total: mockPlatformConnections.length,
+        },
       });
+    }, 500);
+  });
+};
+
+const mockConnectPlatform = (platformId, credentials) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (!credentials.username) {
+        reject({
+          response: {
+            data: { message: 'Username is required' },
+          },
+        });
+        return;
+      }
+
+      const platform = mockPlatformConnections.find(p => p.platformId === platformId);
+      if (platform) {
+        platform.connected = true;
+        platform.status = 'connected';
+        platform.username = credentials.username;
+        platform.lastSync = new Date().toISOString();
+        resolve({
+          data: {
+            message: 'Platform connected successfully',
+            platform: platform,
+          },
+        });
+      } else {
+        // Add new platform
+        const newPlatform = {
+          id: String(mockPlatformConnections.length + 1),
+          platformId: platformId,
+          name: platformId.charAt(0).toUpperCase() + platformId.slice(1),
+          username: credentials.username,
+          connected: true,
+          status: 'connected',
+          lastSync: new Date().toISOString(),
+          problemsSynced: 0,
+          lastSyncError: null,
+          syncing: false,
+          settings: {
+            syncProblems: true,
+            syncSubmissions: true,
+            syncContests: false,
+            autoSync: true,
+          },
+        };
+        mockPlatformConnections.push(newPlatform);
+        resolve({
+          data: {
+            message: 'Platform connected successfully',
+            platform: newPlatform,
+          },
+        });
+      }
+    }, 800);
+  });
+};
+
+const mockDisconnectPlatform = (platformId) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const platform = mockPlatformConnections.find(p => p.id === platformId);
+      if (platform) {
+        platform.connected = false;
+        platform.status = 'disconnected';
+        platform.lastSync = null;
+      }
+      resolve({
+        data: {
+          message: 'Platform disconnected successfully',
+        },
+      });
+    }, 500);
+  });
+};
+
+const mockTestConnection = (platformId, credentials) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (!credentials.username) {
+        reject({
+          response: {
+            data: { message: 'Username is required for testing' },
+          },
+        });
+        return;
+      }
+
+      // Simulate random success/failure for demo
+      const success = Math.random() > 0.2; // 80% success rate
+      if (success) {
+        resolve({
+          data: {
+            success: true,
+            message: 'Connection test successful! Found user profile.',
+          },
+        });
+      } else {
+        resolve({
+          data: {
+            success: false,
+            message: 'Connection test failed. Please check your credentials.',
+          },
+        });
+      }
+    }, 1500);
+  });
+};
+
+const mockSyncPlatform = (platformId) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const platform = mockPlatformConnections.find(p => p.id === platformId);
+      if (platform) {
+        const synced = Math.floor(Math.random() * 20) + 5; // 5-25 problems synced
+        platform.problemsSynced += synced;
+        platform.lastSync = new Date().toISOString();
+        platform.lastSyncError = null;
+        resolve({
+          data: {
+            message: 'Sync completed successfully',
+            synced: synced,
+          },
+        });
+      }
+    }, 2000);
+  });
+};
+
+const mockUpdateSettings = (platformId, settings) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const platform = mockPlatformConnections.find(p => p.id === platformId);
+      if (platform) {
+        platform.settings = { ...platform.settings, ...settings };
+      }
+      resolve({
+        data: {
+          message: 'Settings updated successfully',
+        },
+      });
+    }, 500);
+  });
+};
+
+// Platform API
+export const platformAPI = {
+  getPlatforms: async () => {
+    try {
+      const response = await api.get('/platforms');
+      return response;
+    } catch (error) {
+      console.log('Using mock platform data');
+      return mockGetPlatforms();
+    }
+  },
+
+  connectPlatform: async (platformId, credentials) => {
+    try {
+      const response = await api.post(`/platforms/${platformId}/connect`, credentials);
+      return response;
+    } catch (error) {
+      console.log('Using mock connect platform');
+      return mockConnectPlatform(platformId, credentials);
+    }
+  },
+
+  disconnectPlatform: async (platformId) => {
+    try {
+      const response = await api.post(`/platforms/${platformId}/disconnect`);
+      return response;
+    } catch (error) {
+      console.log('Using mock disconnect platform');
+      return mockDisconnectPlatform(platformId);
+    }
+  },
+
+  testConnection: async (platformId, credentials) => {
+    try {
+      const response = await api.post(`/platforms/${platformId}/test`, credentials);
+      return response;
+    } catch (error) {
+      console.log('Using mock test connection');
+      return mockTestConnection(platformId, credentials);
+    }
+  },
+
+  syncPlatform: async (platformId) => {
+    try {
+      const response = await api.post(`/platforms/${platformId}/sync`);
+      return response;
+    } catch (error) {
+      console.log('Using mock sync platform');
+      return mockSyncPlatform(platformId);
+    }
+  },
+
+  updateSettings: async (platformId, settings) => {
+    try {
+      const response = await api.put(`/platforms/${platformId}/settings`, settings);
+      return response;
+    } catch (error) {
+      console.log('Using mock update settings');
+      return mockUpdateSettings(platformId, settings);
+    }
   },
 };
 
