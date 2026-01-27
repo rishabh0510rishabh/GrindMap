@@ -7,6 +7,7 @@ import Profile from "./components/Profile";
 import ActivityHistory from "./components/ActivityHistory";
 import PlatformManager from "./components/PlatformManager";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Analytics from "./components/Analytics";
 
 function App() {
   return (
@@ -55,6 +56,24 @@ function App() {
           element={
             <ProtectedRoute>
               <PlatformManager />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/platforms"
+          element={
+            <ProtectedRoute>
+              <PlatformManager />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/analytics"
+          element={
+            <ProtectedRoute>
+              <Analytics />
             </ProtectedRoute>
           }
         />
