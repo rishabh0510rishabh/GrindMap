@@ -8,15 +8,15 @@ import { fetchSkillRackStats } from './scraping/skillrack.scraper.js';
 import { scrapeHackerEarth } from './scraping/hackerearth.scraper.js';
 import { normalizeCodeforces } from './normalization/codeforces.normalizer.js';
 import { normalizeCodeChef } from './normalization/codechef.normalizer.js';
-import { normalizeHackerEarth } from './normalization/hackerearth.normalizer.js';
-import { scrapeHackerRank } from './scraping/hackerrank.scraper.js';
-import { normalizeHackerRank } from './normalization/hackerrank.normalizer.js';
+import { normalizeLeetCode } from './normalization/leetcode.normalizer.js';
 import { PLATFORMS, MESSAGES } from '../constants/app.constants.js';
 import { AppError, ERROR_CODES } from '../utils/appError.js';
 import APICache from '../utils/apiCache.js';
 import config from '../config/env.js';
 import DataChangeEmitter from '../utils/dataChangeEmitter.js';
 import NotificationService from './notification.service.js';
+import Logger from '../utils/logger.js';
+import { asyncWrapper } from '../utils/asyncWrapper.js';
 
 /**
  * Platform scraping service - handles all platform data fetching
@@ -51,19 +51,22 @@ class PlatformService {
 
     try {
       const scraperResult = await scrapeLeetCode(username);
+      const normalizedData = normalizeLeetCode({ username, data: scraperResult.data });
       const result = {
         platform: PLATFORMS.LEETCODE,
         username,
-        ...scraperResult,
+        ...normalizedData,
+        fromCache: scraperResult.fromCache,
+        fromFallback: scraperResult.fromFallback
       };
-
-      // Cache with advanced manager and tags
-      try {
-        await AdvancedCacheManager.set(cacheKey, result, config.CACHE_PLATFORM_TTL, {
-          tags: ['platform', 'leetcode', username]
-        });
-      } catch (cacheError) {
-        console.warn('Cache write failed for LeetCode:', cacheError.message);
+      
+      // Only cache if not from fallback
+      if (!scraperResult.fromFallback) {
+        try {
+          await redis.set(cacheKey, JSON.stringify(result), config.CACHE_PLATFORM_TTL);
+        } catch (cacheError) {
+          Logger.warn('Cache write failed for LeetCode', { error: cacheError.message, username });
+        }
       }
 
       // Emit real-time update
@@ -72,7 +75,11 @@ class PlatformService {
       APICache.set(cacheKey, result, 900);
       
       if (userId) {
-        DataChangeEmitter.emitPlatformUpdate(PLATFORMS.LEETCODE, username, result, userId);
+        try {
+          DataChangeEmitter.emitPlatformUpdate(PLATFORMS.LEETCODE, username, result, userId);
+        } catch (emitError) {
+          Logger.warn('Real-time update failed for LeetCode', { error: emitError.message, username, userId });
+        }
       }
 
       return result;

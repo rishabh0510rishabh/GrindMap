@@ -2,6 +2,8 @@ import express from 'express';
 import FileUploadController from '../controllers/fileUpload.controller.js';
 import { secureUpload, validateUpload } from '../middlewares/secureUpload.middleware.js';
 import { advancedRateLimit } from '../middlewares/antiBypassRateLimit.middleware.js';
+import { param } from 'express-validator';
+import { handleValidationErrors } from '../middlewares/validation.middleware.js';
 
 const router = express.Router();
 
@@ -16,6 +18,10 @@ router.post('/upload',
 // Delete file
 router.delete('/:fileId',
   advancedRateLimit,
+  [
+    param('fileId').isMongoId().withMessage('Invalid file ID format').escape(),
+    handleValidationErrors
+  ],
   FileUploadController.deleteFile
 );
 

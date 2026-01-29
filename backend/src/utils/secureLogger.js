@@ -60,22 +60,18 @@ export const secureLog = {
 
 // Override console methods in production
 if (process.env.NODE_ENV === 'production') {
-  const originalLog = console.log;
-  const originalError = console.error;
-  const originalWarn = console.warn;
-  
   console.log = (...args) => {
     const redacted = args.map(arg => redactSensitiveData(arg));
-    originalLog(...redacted);
+    Logger.info(redacted.join(' '));
   };
-  
+
   console.error = (...args) => {
     const redacted = args.map(arg => redactSensitiveData(arg));
-    originalError(...redacted);
+    Logger.error(redacted.join(' '));
   };
-  
+
   console.warn = (...args) => {
     const redacted = args.map(arg => redactSensitiveData(arg));
-    originalWarn(...redacted);
+    Logger.warn(redacted.join(' '));
   };
 }

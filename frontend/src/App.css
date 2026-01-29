@@ -4,11 +4,27 @@
   box-sizing: border-box;
 }
 
+:root {
+  --theme-primary: #f97316;
+  --theme-secondary: #ea580c;
+  --theme-text: #ffffff;
+  --theme-shadow: rgba(0, 0, 0, 0.3);
+  --theme-border: rgba(255, 255, 255, 0.2);
+  --theme-background: linear-gradient(135deg, #020617 0%, #0f172a 40%, #1e293b 100%);
+  --theme-surface: rgba(255, 255, 255, 0.1);
+  --theme-textSecondary: #94a3b8;
+  --theme-error: #ef4444;
+  --theme-progress: #f97316;
+  --theme-heatmap-low: #9be9a8;
+  --theme-heatmap-medium: #40c463;
+  --theme-heatmap-high: #216e39;
+}
+
 body {
   font-family:
     -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
-  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+  background: linear-gradient(135deg, #020617 0%, #0f172a 40%, #1e293b 100%);
   color: white;
   min-height: 100vh;
   transition:
@@ -225,9 +241,9 @@ body {
 }
 
 .input-group input:focus {
-  border-color: #667eea;
+  border-color: var(--theme-primary);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); /* Subtle focus ring */
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.25); /* Subtle focus ring */
 }
 
 .input-group input::placeholder {
@@ -242,7 +258,7 @@ body {
   font-size: 0.95em;
   font-weight: 600;
   background: #fff;
-  color: #4f46e5;
+  color: #f97316;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   cursor: pointer;
@@ -277,7 +293,7 @@ body {
 }
 
 .overall h2 {
-  color: #667eea;
+  color: var(--theme-primary);
   font-size: 2em;
   margin-bottom: 18px;
 }
@@ -308,7 +324,7 @@ body {
 .platform-card:hover {
   transform: translateY(-8px);
   box-shadow: 0 18px 55px rgba(0, 0, 0, 0.22);
-  border-color: #667eea;
+  border-color: var(--theme-primary);
 }
 
 .platform-card.expanded {
@@ -467,7 +483,7 @@ body {
   text-align: center;
   margin-bottom: 26px;
   font-size: 1.9em;
-  color: #667eea;
+  color: var(--theme-primary);
 }
 
 .activity-list {
@@ -642,20 +658,20 @@ body {
 
 /* Analytics button */
 .nav-btn.analytics {
-  background: #22c55e;
+  background: var(--theme-primary);
 }
 
 .nav-btn.analytics:hover {
   transform: translateY(-2px);
-  background: #16a34a;
+  background: #ea580c;
 }
 
 /* Achievements button */
 .nav-btn.badges {
-  background: #a855f7;
+  background: var(--theme-secondary);
 }
 
 .nav-btn.badges:hover {
   transform: translateY(-2px);
-  background: #9333ea;
+  background: #f97316;
 }

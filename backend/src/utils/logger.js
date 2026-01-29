@@ -29,19 +29,25 @@ class Logger {
 
   info(message, meta = {}) {
     const log = this.formatLog('INFO', message, meta);
-    console.log(log.trim());
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(log.trim());
+    }
     this.writeLog('app.log', log);
   }
 
   error(message, meta = {}) {
     const log = this.formatLog('ERROR', message, meta);
-    console.error(log.trim());
+    if (process.env.NODE_ENV !== 'production') {
+      console.error(log.trim());
+    }
     this.writeLog('error.log', log);
   }
 
   warn(message, meta = {}) {
     const log = this.formatLog('WARN', message, meta);
-    console.warn(log.trim());
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(log.trim());
+    }
     this.writeLog('app.log', log);
   }
 

@@ -1,10 +1,9 @@
-# Refactor Scraper Code Duplication
+# Fix Broken JSX Structure in App.jsx
 
 ## Tasks
-- [ ] Create BaseScraper class in `backend/src/services/scraping/baseScraper.js`
-- [ ] Refactor LeetCode scraper to extend BaseScraper
-- [ ] Refactor Codeforces scraper to extend BaseScraper
-- [ ] Refactor CodeChef scraper to extend BaseScraper
-- [ ] Test refactored scrapers
-- [ ] Update imports/references if needed
-- [ ] Verify all functionality preserved
+- [ ] Add missing imports for AnalyticsDashboard and ContributorsHallOfFame
+- [ ] Add missing state variables: showGoals and showContributors
+- [ ] Implement missing goal editing functions: handleGoalEdit, handleGoalChange, handleGoalSave, handleGoalCancel
+- [ ] Restructure conditional rendering to fix malformed JSX
+- [ ] Remove duplicated "Overall Progress" section
+- [ ] Fix navbar to include proper navigation buttons
