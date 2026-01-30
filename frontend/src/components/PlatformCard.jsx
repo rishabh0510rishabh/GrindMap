@@ -68,12 +68,22 @@ const PlatformCard = ({
     );
   }
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onToggle(platform.key);
+    }
+  };
+
   return (
     <div
-      className={`platform-card ${styles.card} ${isExpanded ? "expanded" : ""
-        }`}
       className={`platform-card ${styles.card} ${isExpanded ? "expanded" : ""}`}
       onClick={() => onToggle(platform.key)}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex="0"
+      aria-label={`${platform.name} platform card, ${isExpanded ? 'expanded' : 'collapsed'}`}
+      aria-expanded={isExpanded}
     >
       <div className="card-header">
         <h3 className={styles.title} style={{ color: platform.color }}>

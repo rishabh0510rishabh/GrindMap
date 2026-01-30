@@ -32,6 +32,31 @@ body {
     color 0.3s ease;
 }
 
+/* Accessibility: Focus Indicators */
+*:focus {
+  outline: 2px solid #f97316;
+  outline-offset: 2px;
+}
+
+button:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid #f97316;
+  outline-offset: 2px;
+}
+
+/* High contrast focus for better visibility */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible {
+  outline: 3px solid #f97316;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px #fff, 0 0 0 4px #f97316;
+}
+
 .app {
   min-height: 100vh;
   padding: 20px;
