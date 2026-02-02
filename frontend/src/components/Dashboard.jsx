@@ -16,6 +16,7 @@ function Dashboard() {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showBadges, setShowBadges] = useState(false);
   const [expanded, setExpanded] = useState(null);
+  const [activityCollapsed, setActivityCollapsed] = useState(false);
 
   const {
     usernames,
@@ -143,38 +144,49 @@ function Dashboard() {
 
           {/* Today's Activity */}
           <div className="today-activity">
-            <h2>
-              Today's Activity (
-              {today.toLocaleDateString("en-US", {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
-              )
-            </h2>
-            <div className="activity-list">
-              {PLATFORMS.map((plat) => {
-                const submittedToday = hasSubmittedToday(plat.key);
-                const hasData =
-                  platformData[plat.key] && !platformData[plat.key].error;
-
-                return (
-                  <div
-                    key={plat.key}
-                    className={`activity-item ${submittedToday ? "done" : hasData ? "active-no-sub" : "missed"}`}
-                  >
-                    <span>{plat.name}</span>
-                    <span>
-                      {submittedToday
-                        ? "✅ Coded Today"
-                        : hasData
-                          ? "✅ Active (No submission today)"
-                          : "❌ No Data"}
-                    </span>
-                  </div>
-                );
-              })}
+            <div className="activity-header">
+              <h2>
+                Today's Activity (
+                {today.toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+                )
+              </h2>
+              <button
+                className="activity-toggle-btn"
+                onClick={() => setActivityCollapsed(!activityCollapsed)}
+                aria-label={activityCollapsed ? "Expand Today's Activity" : "Collapse Today's Activity"}
+              >
+                {activityCollapsed ? "▼" : "▲"}
+              </button>
             </div>
+            {!activityCollapsed && (
+              <div className="activity-list">
+                {PLATFORMS.map((plat) => {
+                  const submittedToday = hasSubmittedToday(plat.key);
+                  const hasData =
+                    platformData[plat.key] && !platformData[plat.key].error;
+
+                  return (
+                    <div
+                      key={plat.key}
+                      className={`activity-item ${submittedToday ? "done" : hasData ? "active-no-sub" : "missed"}`}
+                    >
+                      <span>{plat.name}</span>
+                      <span>
+                        {submittedToday
+                          ? "✅ Coded Today"
+                          : hasData
+                            ? "✅ Active (No submission today)"
+                            : "❌ No Data"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </>
       )}
