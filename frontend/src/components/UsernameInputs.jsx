@@ -205,6 +205,11 @@ function UsernameInputs({ usernames, onChange, onFetch, loading }) {
                 onBlur={handleBlur}
                 onKeyDown={(e) => handleKeyDown(e, key)}
                 placeholder={config.placeholder}
+                aria-label={`${config.name} username input`}
+                aria-expanded={isFocused && platformHistory.length > 0}
+                aria-haspopup="listbox"
+                aria-autocomplete="list"
+                aria-describedby={errors[key] ? `error-${key}` : undefined}
                 style={{
                   borderColor: errors[key] ? "#ef4444" : undefined,
                   outlineColor: errors[key] ? "#ef4444" : undefined,

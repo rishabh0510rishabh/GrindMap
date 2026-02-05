@@ -31,6 +31,9 @@ const ThemeToggle = () => {
           className="theme-toggle-button"
           onClick={() => setShowCustomizer(!showCustomizer)}
           title="Theme Settings"
+          aria-label="Open theme customizer"
+          aria-expanded={showCustomizer}
+          aria-controls="theme-customizer"
         >
           🎨 Theme
         </button>
@@ -46,7 +49,15 @@ const ThemeToggle = () => {
                   key={theme.key}
                   className={`theme-option ${currentTheme === theme.key ? 'active' : ''}`}
                   onClick={() => switchTheme(theme.key)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      switchTheme(theme.key);
+                    }
+                  }}
                   title={theme.name}
+                  aria-label={`Select ${theme.name} theme`}
+                  aria-pressed={currentTheme === theme.key}
                 >
                   <span className="theme-icon">{theme.icon}</span>
                   <span className="theme-name">{theme.name}</span>

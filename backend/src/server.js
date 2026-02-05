@@ -53,12 +53,12 @@ import quotaRoutes from './routes/quota.routes.js';
 import jobsRoutes from './routes/jobs.routes.js';
 import monitoringRoutes from './routes/monitoring.routes.js';
 import grindRoomRoutes from './routes/grindRoom.routes.js';
-import tournamentRoutes from './routes/tournament.routes.js';
-import duelRoutes from './routes/duel.routes.js';
-import mentorshipRoutes from './routes/mentorship.routes.js';
+import pathfinderRoutes from './routes/pathfinder.routes.js';
 
 import monitoringRoutes from './routes/monitoring.routes.js';
 // Import secure logger to prevent JWT exposure
+import './utils/secureLogger.js';
+import { seedAchievements } from './utils/achievementSeeder.js';
 
 import './utils/secureLogger.js';
 // Import constants
@@ -270,9 +270,7 @@ app.use('/api/upload', fileUploadRoutes);
 app.use('/api/job-monitoring', jobMonitoringRoutes);
 app.use('/api/monitoring', monitoringRoutes);
 app.use('/api/rooms', grindRoomRoutes);
-app.use('/api/tournaments', tournamentRoutes);
-app.use('/api/duels', duelRoutes);
-app.use('/api/mentorship', mentorshipRoutes);
+app.use('/api/pathfinder', pathfinderRoutes);
 
 // API documentation endpoint
 app.get('/api', (req, res) => {
@@ -292,9 +290,7 @@ app.get('/api', (req, res) => {
       quota: '/api/quota',
       jobs: '/api/jobs',
       monitoring: '/api/monitoring',
-      tournaments: '/api/tournaments',
-      duels: '/api/duels',
-      mentorship: '/api/mentorship',
+      pathfinder: '/api/pathfinder',
       health: '/health',
       database: '/api/database',
     },
@@ -307,14 +303,68 @@ app.use(notFound);
 app.use(secureErrorHandler);
 app.use(errorHandler);
 
-const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-}).on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`❌ Port ${PORT} is already in use`);
-    console.log(`🔄 Trying port ${PORT + 1}...`);
-    app.listen(PORT + 1, () => {
-      console.log(`✅ Server running on port ${PORT + 1}`);
+// Global error handlers for unhandled promises and exceptions
+process.on('unhandledRejection', err => {
+  Logger.error('Unhandled Promise Rejection', {
+    error: err.message,
+    stack: err.stack,
+  });
+  process.exit(1);
+});
+
+process.on('uncaughtException', err => {
+  Logger.error('Uncaught Exception', {
+    error: err.message,
+    stack: err.stack,
+  });
+  process.exit(1);
+});
+
+// Graceful shutdown handler
+process.on('SIGTERM', async () => {
+  Logger.info('SIGTERM received. Shutting down gracefully...');
+
+  // Cleanup resources
+  await RequestManager.cleanup();
+  await PuppeteerManager.cleanup();
+
+  server.close(() => {
+    Logger.info('Process terminated');
+  });
+});
+
+// Start server
+const startServer = async () => {
+  try {
+    await connectDB();
+    await seedAchievements();
+
+    // Initialize services after database connection
+    BatchProcessingService.startScheduler();
+    CacheWarmingService.startDefaultSchedules();
+
+    // Register job handlers
+    JobQueue.registerHandler('scraping', JobHandlers.handleScraping);
+    JobQueue.registerHandler('cache_warmup', JobHandlers.handleCacheWarmup);
+    JobQueue.registerHandler('analytics', JobHandlers.handleAnalytics);
+    JobQueue.registerHandler('notification', JobHandlers.handleNotification);
+    JobQueue.registerHandler('cleanup', JobHandlers.handleCleanup);
+    JobQueue.registerHandler('export', JobHandlers.handleExport);
+
+    // Start job processing
+    JobQueue.startProcessing({ concurrency: 3, types: [] });
+
+    CronScheduler.start();
+    HealthMonitor.startMonitoring(30000);
+
+    server.listen(PORT, () => {
+      Logger.info('Server started', {
+        port: PORT,
+        environment: NODE_ENV,
+        healthCheck: `http://localhost:${PORT}/health`,
+        websocket: `ws://localhost:${PORT}/ws`,
+        features: ['distributed-rate-limiting', 'distributed-sessions', 'real-time-updates'],
+      });
     });
   } else {
     console.error('❌ Server error:', err);
