@@ -47,23 +47,21 @@ import advancedCacheRoutes from './routes/advancedCache.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
 import securityRoutes from './routes/security.routes.js';
-import databaseRoutes from './routes/database.routes.js';
-import websocketRoutes from './routes/websocket.routes.js';
-import quotaRoutes from './routes/quota.routes.js';
-import jobsRoutes from './routes/jobs.routes.js';
-import monitoringRoutes from './routes/monitoring.routes.js';
-import grindRoomRoutes from './routes/grindRoom.routes.js';
-import pathfinderRoutes from './routes/pathfinder.routes.js';
-
-import monitoringRoutes from './routes/monitoring.routes.js';
-// Import secure logger to prevent JWT exposure
-import './utils/secureLogger.js';
-import { seedAchievements } from './utils/achievementSeeder.js';
-
-import './utils/secureLogger.js';
-// Import constants
-import { HTTP_STATUS, ENVIRONMENTS } from './constants/app.constants.js';
-import Logger from './utils/logger.js';
+import healthRoutes from './routes/health.routes.js';
+import { secureLogger, secureErrorHandler } from './middlewares/secureLogging.middleware.js';
+import { validateEnvironment } from './config/environment.js';
+import { connectionManager } from './utils/connectionManager.js';
+import { memoryMonitor } from './services/memoryMonitor.service.js';
+import { cpuMonitor } from './services/cpuMonitor.service.js';
+import { bandwidthMonitor } from './services/bandwidthMonitor.service.js';
+import { processLimiter } from './utils/processLimiter.js';
+import { cacheManager } from './utils/cacheManager.js';
+import { gracefulShutdown } from './utils/shutdown.util.js';
+import { authBypassProtection, validateToken } from './middlewares/auth.middleware.js';
+import { fileUploadSecurity, validateFileExtensions, detectEncodedFiles } from './middlewares/fileUpload.middleware.js';
+import { apiVersionSecurity, deprecationWarning, validateApiEndpoint, versionRateLimit } from './middlewares/apiVersion.middleware.js';
+import { csrfProtection, csrfTokenEndpoint } from './middlewares/csrf.middleware.js';
+import platformRoutes from './routes/platform.routes.js';
 
 // Set default NODE_ENV if not provided
 if (!process.env.NODE_ENV) {
@@ -192,6 +190,9 @@ app.use('/api/audit', auditBodyLimit, auditSizeLimit, auditTimeout, strictRateLi
 
 // Security management routes
 app.use('/api/security', securityBodyLimit, securitySizeLimit, securityTimeout, strictRateLimit, securityRoutes);
+
+// Platform connection routes
+app.use('/api/platforms', platformRoutes);
 
 // Root route
 app.get('/', (req, res) => {

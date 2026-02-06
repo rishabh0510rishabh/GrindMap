@@ -44,8 +44,11 @@ const PlatformConnectionCard = ({ platform, onConnect, onDisconnect, onTest, onS
     if (!platform.connected) return { text: 'Not Connected', color: '#6b7280' };
     if (platform.lastSyncError) return { text: 'Error', color: '#ef4444' };
     if (platform.syncing) return { text: 'Syncing...', color: '#f59e0b' };
+    if (!platform.lastSync) return { text: 'Never Synced', color: '#f59e0b' };
     
     const lastSync = new Date(platform.lastSync);
+    if (isNaN(lastSync.getTime())) return { text: 'Invalid Date', color: '#f59e0b' };
+    
     const hoursSinceSync = (Date.now() - lastSync.getTime()) / (1000 * 60 * 60);
     
     if (hoursSinceSync < 1) return { text: 'Healthy', color: '#22c55e' };
@@ -77,18 +80,21 @@ const PlatformConnectionCard = ({ platform, onConnect, onDisconnect, onTest, onS
 
   const handleTest = async () => {
     setTesting(true);
-    await onTest(platform.id, credentials);
+    const actualPlatformId = platform.id.replace('temp_', '') || platform.platformId;
+    await onTest(actualPlatformId, credentials);
     setTimeout(() => setTesting(false), 2000);
   };
 
   const handleSync = async () => {
     setSyncing(true);
-    await onSync(platform.id);
+    const actualPlatformId = platform.id.replace('temp_', '');
+    await onSync(actualPlatformId);
     setTimeout(() => setSyncing(false), 2000);
   };
 
   const handleSaveSettings = () => {
-    onUpdateSettings(platform.id, settings);
+    const actualPlatformId = platform.id.replace('temp_', '');
+    onUpdateSettings(actualPlatformId, settings);
     setShowSettings(false);
   };
 
@@ -287,7 +293,10 @@ const PlatformConnectionCard = ({ platform, onConnect, onDisconnect, onTest, onS
           </button>
           <button 
             className="btn btn-icon btn-danger"
-            onClick={() => onDisconnect(platform.id)}
+            onClick={() => {
+              const actualPlatformId = platform.id.replace('temp_', '');
+              onDisconnect(actualPlatformId);
+            }}
             title="Disconnect"
           >
             🔌 Disconnect

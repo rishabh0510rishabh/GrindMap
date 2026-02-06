@@ -39,11 +39,15 @@ const PlatformManager = () => {
 
   const handleConnect = async (platformId, credentials) => {
     try {
-      const response = await platformAPI.connectPlatform(platformId, credentials);
-      showNotification(`Successfully connected to ${response.data.platform.name}`, 'success');
+      // Extract the actual platform ID from temp IDs
+      const actualPlatformId = platformId.replace('temp_', '');
+      const response = await platformAPI.connectPlatform(actualPlatformId, credentials);
+      showNotification(`Successfully connected to ${response.data.platform.name || 'platform'}`, 'success');
       await loadPlatforms();
     } catch (error) {
       showNotification(error.response?.data?.message || 'Failed to connect platform', 'error');
+      // Remove temporary platform on connection failure
+      setPlatforms(platforms.filter(p => p.id !== platformId));
     }
   };
 
@@ -118,9 +122,38 @@ const PlatformManager = () => {
     }
   };
 
-  const handleAddPlatform = (platformConfig) => {
-    setSelectedPlatform(platformConfig);
-    setShowAddModal(false);
+  const handleAddPlatform = async (platformConfig) => {
+    try {
+      // Create a temporary platform entry for the new platform
+      const newPlatform = {
+        id: `temp_${platformConfig.id}`,
+        platformId: platformConfig.id,
+        name: platformConfig.name,
+        username: '',
+        connected: false,
+        status: 'disconnected',
+        lastSync: null,
+        problemsSynced: 0,
+        lastSyncError: null,
+        syncing: false,
+        requiresApiKey: platformConfig.requiresApiKey,
+        requiresToken: platformConfig.requiresToken,
+        settings: {
+          syncProblems: true,
+          syncSubmissions: true,
+          syncContests: false,
+          autoSync: true,
+        },
+      };
+      
+      // Add the temporary platform to the list
+      setPlatforms([...platforms, newPlatform]);
+      setSelectedPlatform(null);
+      setShowAddModal(false);
+      showNotification(`Ready to connect ${platformConfig.name}. Scroll down to see the form.`, 'info');
+    } catch (error) {
+      showNotification('Error adding platform', 'error');
+    }
   };
 
   const showNotification = (message, type = 'info') => {
